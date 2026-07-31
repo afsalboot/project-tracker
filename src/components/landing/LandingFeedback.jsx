@@ -75,7 +75,7 @@ export default function LandingFeedback() {
           <div>
             <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><MessageSquareText size={20} /></span>
             <p className="mt-6 text-xs font-semibold uppercase tracking-[.22em] text-emerald-800">Your experience</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-.035em] sm:text-4xl">How does Project Tracker feel in your day-to-day work?</h2>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-.035em] sm:text-4xl">How does Project 1 Workspace feel in your day-to-day work?</h2>
             <p className="mt-4 max-w-md text-sm leading-7 text-neutral-600">Tell us what feels clear, what saves you time, and where the experience could feel better.</p>
             <div className="mt-7 space-y-3 text-sm text-neutral-600">
               <p className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-700" />Your email is never shown publicly.</p>

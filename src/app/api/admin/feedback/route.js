@@ -9,7 +9,7 @@ export async function GET(request) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) return fail("Platform administrator access required.", 403);
+    if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) return fail("Website administrator access required.", 403);
     const params = new URL(request.url).searchParams;
     const status = params.get("status");
     const query = ["pending", "approved", "rejected"].includes(status) ? { status } : {};

@@ -3,18 +3,34 @@ import { getSession } from "@/lib/auth";
 import { fail } from "@/lib/api-response";
 import { connectDb } from "@/lib/db";
 import { ensureWorkspace, hasWorkspacePermission } from "@/lib/workspace";
+import { isPlatformAdmin } from "@/lib/platform-admin";
 import User from "@/models/User";
 
 export async function requireApiUser() {
   const session = await getSession();
   if (!session?.sub) return { response: fail("Authentication required.", 401) };
   await connectDb();
-  const context = await ensureWorkspace(session.sub);
-  if (!context) return { response: fail("Authentication required.", 401) };
-  const version = await User.findById(session.sub).select("+sessionVersion").lean();
-  if (!version || Number(session.ver || 0) !== Number(version.sessionVersion || 0)) {
+  const user = await User.findById(session.sub)
+    .select("role status workspaceId +sessionVersion")
+    .lean();
+  if (
+    !user ||
+    user.status === "suspended" ||
+    Number(session.ver || 0) !== Number(user.sessionVersion || 0)
+  ) {
     return { response: fail("Authentication required.", 401) };
   }
+  if (session.admin === true && await isPlatformAdmin(user._id)) {
+    return {
+      userId: user._id,
+      workspaceId: null,
+      role: null,
+      workspace: null,
+      adminSession: true,
+    };
+  }
+  const context = await ensureWorkspace(session.sub);
+  if (!context) return { response: fail("Authentication required.", 401) };
   return {
     userId: session.sub,
     // Keep this as an ObjectId. In development, a hot-reloaded Mongoose model
@@ -22,7 +38,7 @@ export async function requireApiUser() {
     workspaceId: context.workspace._id,
     role: context.user.role,
     workspace: context.workspace,
-    adminSession: session.admin === true,
+    adminSession: false,
   };
 }
 

@@ -25,14 +25,14 @@ export async function PATCH(request, { params }) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
     if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) {
-      return fail("Platform administrator access required.", 403);
+      return fail("Website administrator access required.", 403);
     }
 
     const { workspaceId } = await params;
     if (!validId(workspaceId)) return fail("Workspace not found.", 404);
     const { status } = updateSchema.parse(await request.json());
     if (String(workspaceId) === String(auth.workspaceId) && status === "suspended") {
-      return fail("You cannot suspend the workspace containing your platform administrator account.", 409);
+      return fail("You cannot suspend the workspace containing your website administrator account.", 409);
     }
 
     const workspace = await Workspace.findByIdAndUpdate(
@@ -62,7 +62,7 @@ export async function DELETE(request, { params }) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
     if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) {
-      return fail("Platform administrator access required.", 403);
+      return fail("Website administrator access required.", 403);
     }
 
     const { workspaceId } = await params;

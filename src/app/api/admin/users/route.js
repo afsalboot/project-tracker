@@ -1,5 +1,5 @@
 import { fail, handleApiError, ok } from "@/lib/api-response";
-import { isPlatformAdmin } from "@/lib/platform-admin";
+import { isPlatformAdmin, platformAdminUserIds } from "@/lib/platform-admin";
 import { requireApiUser } from "@/lib/server";
 import { escapeRegex } from "@/lib/utils";
 import User from "@/models/User";
@@ -11,11 +11,12 @@ export async function GET(request) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
     if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) {
-      return fail("Platform administrator access required.", 403);
+      return fail("Website administrator access required.", 403);
     }
 
     const params = new URL(request.url).searchParams;
-    const query = {};
+    const adminUserIds = await platformAdminUserIds();
+    const query = { _id: { $nin: adminUserIds } };
     const status = params.get("status");
     const search = params.get("search")?.trim().slice(0, 100);
     if (["active", "suspended"].includes(status)) {

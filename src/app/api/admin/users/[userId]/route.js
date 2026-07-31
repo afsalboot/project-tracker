@@ -25,14 +25,14 @@ export async function PATCH(request, { params }) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
     if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) {
-      return fail("Platform administrator access required.", 403);
+      return fail("Website administrator access required.", 403);
     }
 
     const { userId } = await params;
     if (!validId(userId)) return fail("User not found.", 404);
     const { status } = updateSchema.parse(await request.json());
     if (String(userId) === String(auth.userId) && status === "suspended") {
-      return fail("You cannot suspend your own platform administrator account.", 409);
+      return fail("You cannot suspend your own website administrator account.", 409);
     }
 
     const user = await User.findByIdAndUpdate(
@@ -59,7 +59,7 @@ export async function DELETE(request, { params }) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
     if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) {
-      return fail("Platform administrator access required.", 403);
+      return fail("Website administrator access required.", 403);
     }
 
     const { userId } = await params;

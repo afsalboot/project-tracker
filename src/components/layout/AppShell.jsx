@@ -56,7 +56,7 @@ export default function AppShell({ user, children }) {
     <>
       <div className="flex h-16 items-center gap-3 border-b border-white/10 px-4">
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10"><PanelsTopLeft size={19} /></span>
-        {!collapsed && <span className="font-semibold">Project Tracker</span>}
+        {!collapsed && <span className="font-semibold">Project 1 Workspace</span>}
         <button aria-label="Close menu" className="ml-auto md:hidden" onClick={() => setOpen(false)}><X size={20} /></button>
       </div>
       <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">

@@ -1,6 +1,6 @@
 import { fail, handleApiError, ok } from "@/lib/api-response";
 import { requireApiUser } from "@/lib/server";
-import { isPlatformAdmin } from "@/lib/platform-admin";
+import { isPlatformAdmin, platformAdminUserIds } from "@/lib/platform-admin";
 import Feedback from "@/models/Feedback";
 import Project from "@/models/Project";
 import Task from "@/models/Task";
@@ -14,8 +14,11 @@ export async function GET() {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
     if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) {
-      return fail("Platform administrator access required.", 403);
+      return fail("Website administrator access required.", 403);
     }
+    const adminUserIds = await platformAdminUserIds();
+    const websiteUserQuery = { _id: { $nin: adminUserIds } };
+    const websiteWorkspaceQuery = { ownerId: { $nin: adminUserIds } };
     const [
       totals,
       users,
@@ -28,10 +31,10 @@ export async function GET() {
       Feedback.aggregate([
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]),
-      User.countDocuments(),
-      User.countDocuments({ status: "suspended" }),
-      Workspace.countDocuments(),
-      Workspace.countDocuments({ status: "suspended" }),
+      User.countDocuments(websiteUserQuery),
+      User.countDocuments({ ...websiteUserQuery, status: "suspended" }),
+      Workspace.countDocuments(websiteWorkspaceQuery),
+      Workspace.countDocuments({ ...websiteWorkspaceQuery, status: "suspended" }),
       Project.countDocuments(),
       Task.countDocuments(),
     ]);

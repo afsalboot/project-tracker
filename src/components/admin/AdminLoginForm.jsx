@@ -43,7 +43,7 @@ export default function AdminLoginForm() {
         <div className="absolute -bottom-40 left-20 size-96 rounded-full border border-white/10 bg-white/[.03]" />
         <div className="relative flex items-center gap-3 text-sm font-semibold">
           <span className="grid size-10 place-items-center rounded-xl bg-white/10"><PanelsTopLeft size={20} /></span>
-          Project Tracker
+          Project 1 Workspace
         </div>
         <div className="relative max-w-xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/20 bg-white/[.06] px-3 py-2 text-xs font-semibold text-emerald-100"><ShieldCheck size={15} />Restricted website administration</span>

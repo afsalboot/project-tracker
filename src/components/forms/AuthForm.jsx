@@ -39,7 +39,7 @@ export default function AuthForm() {
       <section className="hidden bg-[#173f32] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-3 text-sm font-semibold">
           <span className="grid size-10 place-items-center rounded-xl bg-white/10"><PanelsTopLeft size={20} /></span>
-          Project Tracker
+          Project 1 Workspace
         </div>
         <div className="max-w-xl">
           <p className="text-sm font-semibold text-emerald-200">A focused workspace for every project</p>

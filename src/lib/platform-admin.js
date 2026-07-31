@@ -40,3 +40,17 @@ export async function isPlatformAdmin(userId) {
 
   return String(configuration?.adminUserId || "") === String(userId);
 }
+
+export async function platformAdminUserIds() {
+  await connectDb();
+  const ids = [];
+  const emails = [...configuredEmails()];
+  if (emails.length) {
+    ids.push(...await User.find({ email: { $in: emails } }).distinct("_id"));
+  }
+  const configuration = await PlatformConfiguration.findById("platform")
+    .select("adminUserId")
+    .lean();
+  if (configuration?.adminUserId) ids.push(configuration.adminUserId);
+  return [...new Map(ids.map((id) => [String(id), id])).values()];
+}

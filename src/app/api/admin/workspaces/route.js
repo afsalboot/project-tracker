@@ -1,5 +1,5 @@
 import { fail, handleApiError, ok } from "@/lib/api-response";
-import { isPlatformAdmin } from "@/lib/platform-admin";
+import { isPlatformAdmin, platformAdminUserIds } from "@/lib/platform-admin";
 import { requireApiUser } from "@/lib/server";
 import { escapeRegex } from "@/lib/utils";
 import Project from "@/models/Project";
@@ -14,11 +14,12 @@ export async function GET(request) {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
     if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) {
-      return fail("Platform administrator access required.", 403);
+      return fail("Website administrator access required.", 403);
     }
 
     const params = new URL(request.url).searchParams;
-    const query = {};
+    const adminUserIds = await platformAdminUserIds();
+    const query = { ownerId: { $nin: adminUserIds } };
     const status = params.get("status");
     const type = params.get("type");
     const search = params.get("search")?.trim().slice(0, 100);
@@ -37,7 +38,7 @@ export async function GET(request) {
     const ids = workspaces.map((workspace) => workspace._id);
     const [memberCounts, projectCounts, taskCounts] = await Promise.all([
       User.aggregate([
-        { $match: { workspaceId: { $in: ids } } },
+        { $match: { workspaceId: { $in: ids }, _id: { $nin: adminUserIds } } },
         { $group: { _id: "$workspaceId", count: { $sum: 1 } } },
       ]),
       Project.aggregate([

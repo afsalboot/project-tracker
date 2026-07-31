@@ -14,7 +14,7 @@ export async function PATCH(request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) return fail("Platform administrator access required.", 403);
+    if (!auth.adminSession || !(await isPlatformAdmin(auth.userId))) return fail("Website administrator access required.", 403);
     const { feedbackId } = await params;
     if (!validId(feedbackId)) return fail("Feedback not found.", 404);
     const { status } = moderationSchema.parse(await request.json());

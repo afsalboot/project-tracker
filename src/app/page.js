@@ -22,7 +22,7 @@ export default async function Home() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
         <Link href="/" className="flex items-center gap-3 font-semibold">
           <span className="grid size-10 place-items-center rounded-xl bg-[#174c3b] text-white"><Layers3 size={19} /></span>
-          Project Tracker
+          Project 1 Workspace
         </Link>
         <Link href={workspaceHref} className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-neutral-950">
           {user ? "Open workspace" : "Sign in"}

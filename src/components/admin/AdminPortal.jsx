@@ -38,7 +38,7 @@ export default function AdminPortal() {
     <>
       <PageIntro
         eyebrow="Website administration"
-        title="Platform control center"
+        title="Website control center"
         description="Manage every website account and workspace. These controls are separate from workspace roles and permissions."
         actions={<span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700"><ShieldCheck size={15} />Site administrator</span>}
       />
@@ -77,7 +77,7 @@ function Overview({ onOpen }) {
         if (!response.ok) return toast.error(result.message);
         setData(result.data);
       })
-      .catch(() => active && toast.error("Unable to load platform analytics."));
+      .catch(() => active && toast.error("Unable to load website analytics."));
     return () => { active = false; };
   }, []);
 
