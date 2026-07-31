@@ -5,7 +5,6 @@ import { loginSchema } from "@/lib/validations";
 import { setSession } from "@/lib/auth";
 import User from "@/models/User";
 import { clearPersistentRateLimit, enforcePersistentRateLimit } from "@/lib/security";
-import { issueLoginVerification } from "@/lib/login-verification";
 
 export const runtime = "nodejs";
 
@@ -29,14 +28,6 @@ export async function POST(request) {
       return fail("Invalid email or password.", 401);
     }
     await clearPersistentRateLimit(request, "login-account", input.email, windowMs);
-    if (user.emailVerificationRequired) {
-      const verification = await issueLoginVerification(user, "signup");
-      return ok(
-        { otpRequired: true, ...verification },
-        "Verify your email to finish creating this account.",
-        202,
-      );
-    }
     await setSession(user);
     return ok(
       {
@@ -45,16 +36,6 @@ export async function POST(request) {
       "Welcome back.",
     );
   } catch (error) {
-    if (["EMAIL_NOT_CONFIGURED", "EMAIL_DELIVERY_FAILED"].includes(error?.code)) {
-      if (error.verification) {
-        return ok(
-          { otpRequired: true, deliveryFailed: true, ...error.verification },
-          "Open the verification screen, then resend after the email sender is fixed.",
-          202,
-        );
-      }
-      return fail("Email verification is temporarily unavailable.", 503);
-    }
     return handleApiError(error);
   }
 }
