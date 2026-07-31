@@ -17,14 +17,20 @@ export async function POST(request) {
     if (limited) return limited;
     const input = registerSchema.parse(await request.json());
     const existing = await User.findOne({ email: input.email })
-      .select("emailVerificationRequired")
-      .lean();
+      .select("+password email emailVerificationRequired status");
     if (existing) {
-      return fail(
-        existing.emailVerificationRequired
-          ? "This account is waiting for email verification. Sign in with its password to request a new code."
-          : "An account with this email already exists. Sign in instead.",
-        409,
+      const canResume =
+        existing.emailVerificationRequired &&
+        existing.status !== "suspended" &&
+        await bcrypt.compare(input.password, existing.password);
+      if (!canResume) {
+        return fail("An account with this email already exists. Sign in instead.", 409);
+      }
+      const verification = await issueLoginVerification(existing, "signup");
+      return ok(
+        { otpRequired: true, ...verification },
+        "A new verification code was sent. Enter it to finish creating your account.",
+        202,
       );
     }
     const session = await mongoose.startSession();
@@ -63,7 +69,7 @@ export async function POST(request) {
       return fail("An account with this email already exists. Sign in instead.", 409);
     }
     if (["EMAIL_NOT_CONFIGURED", "EMAIL_DELIVERY_FAILED"].includes(error?.code)) {
-      return fail("Your account was created, but the verification email could not be sent. Try signing in after email delivery is configured.", 503);
+      return fail("The account is waiting for verification, but the email could not be sent. Check the sender configuration and try again.", 503);
     }
     return handleApiError(error);
   }
