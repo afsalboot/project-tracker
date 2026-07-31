@@ -47,7 +47,7 @@ export default function AdminLoginForm() {
         </div>
         <div className="relative max-w-xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/20 bg-white/[.06] px-3 py-2 text-xs font-semibold text-emerald-100"><ShieldCheck size={15} />Restricted website administration</span>
-          <h1 className="mt-6 text-4xl font-semibold leading-tight">Control the platform, protect every workspace.</h1>
+          <h1 className="mt-6 text-4xl font-semibold leading-tight">Control the website, protect every workspace.</h1>
           <p className="mt-4 max-w-lg leading-7 text-emerald-50/65">Review website activity, manage all accounts and workspaces, and moderate public feedback from one secured console.</p>
         </div>
         <p className="relative text-xs text-emerald-50/45">Access is limited to the designated website administrator.</p>
@@ -57,7 +57,7 @@ export default function AdminLoginForm() {
           <span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><LockKeyhole size={22} /></span>
           <p className="mt-7 text-[11px] font-bold uppercase tracking-[.16em] text-emerald-700">Website administration</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight">Administrator sign in</h2>
-          <p className="mt-2 text-sm leading-6 text-neutral-500">Use the credentials of the first registered website account. Workspace Admin credentials do not grant access.</p>
+          <p className="mt-2 text-sm leading-6 text-neutral-500">Use the designated website administrator credentials. Workspace Admin credentials do not grant access.</p>
           <form className="mt-7 space-y-4" onSubmit={submit}>
             <label className="block">
               <span className="label">Administrator email</span>

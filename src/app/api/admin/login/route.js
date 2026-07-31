@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { fail, handleApiError, ok } from "@/lib/api-response";
-import { setSession } from "@/lib/auth";
 import { connectDb } from "@/lib/db";
+import { setSession } from "@/lib/auth";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { clearPersistentRateLimit, enforcePersistentRateLimit } from "@/lib/security";
 import { loginSchema } from "@/lib/validations";
@@ -57,7 +57,7 @@ export async function POST(request) {
           id: user.id,
           name: user.name,
           email: user.email,
-          platformAdmin: true,
+          websiteAdministrator: true,
         },
       },
       "Website administrator access granted.",

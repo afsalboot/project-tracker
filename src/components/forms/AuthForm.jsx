@@ -8,10 +8,12 @@ import { LockKeyhole, PanelsTopLeft } from "lucide-react";
 import { toast } from "sonner";
 import { loginSchema, registerSchema } from "@/lib/validations";
 import Dropdown from "@/components/ui/Dropdown";
+import LoginCodeForm from "@/components/forms/LoginCodeForm";
 
 export default function AuthForm() {
   const router = useRouter();
   const [setup, setSetup] = useState(false);
+  const [challenge, setChallenge] = useState(null);
   const schema = setup ? registerSchema : loginSchema;
   const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
@@ -30,6 +32,10 @@ export default function AuthForm() {
       return;
     }
     toast.success(result.message);
+    if (result.data?.otpRequired) {
+      setChallenge(result.data);
+      return;
+    }
     router.replace("/dashboard");
     router.refresh();
   }
@@ -50,6 +56,15 @@ export default function AuthForm() {
       </section>
       <section className="flex items-center justify-center bg-white p-6">
         <div className="w-full max-w-sm">
+          {challenge ? (
+            <LoginCodeForm
+              challenge={challenge}
+              onChallenge={setChallenge}
+              onCancel={() => setChallenge(null)}
+              onVerified={(destination) => { router.replace(destination); router.refresh(); }}
+            />
+          ) : (
+          <>
           <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><LockKeyhole size={21} /></span>
           <h2 className="mt-6 text-2xl font-semibold">{setup ? "Create your workspace" : "Welcome back"}</h2>
           <p className="mt-2 text-sm text-neutral-500">{setup ? "Create a private workspace. You will be its owner and can invite your team later." : "Sign in to continue to your project workspace."}</p>
@@ -62,6 +77,8 @@ export default function AuthForm() {
           <button className="mt-5 text-sm font-medium text-emerald-700 hover:underline" onClick={() => setSetup((value) => !value)}>
             {setup ? "Already have an account? Sign in" : "New here? Create an account"}
           </button>
+          </>
+          )}
         </div>
       </section>
     </main>

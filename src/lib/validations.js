@@ -35,6 +35,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required").max(128),
 });
 
+export const loginCodeSchema = z.object({
+  challengeId: z.uuid(),
+  code: z.string().trim().regex(/^\d{6}$/, "Enter the six-digit code"),
+});
+
+export const resendLoginCodeSchema = z.object({
+  challengeId: z.uuid(),
+});
+
 export const projectSchema = z
   .object({
     name: z.string().trim().min(2).max(160),
