@@ -28,6 +28,13 @@ export async function POST(request) {
     return ok({ otpRequired: true, ...verification }, "A new verification code was sent.");
   } catch (error) {
     if (["EMAIL_NOT_CONFIGURED", "EMAIL_DELIVERY_FAILED"].includes(error?.code)) {
+      if (error.verification) {
+        return ok(
+          { otpRequired: true, deliveryFailed: true, ...error.verification },
+          "The code still could not be emailed. Check the sender configuration and try again.",
+          202,
+        );
+      }
       return fail("Email verification is temporarily unavailable.", 503);
     }
     return handleApiError(error);

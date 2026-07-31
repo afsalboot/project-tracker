@@ -46,6 +46,13 @@ export async function POST(request) {
     );
   } catch (error) {
     if (["EMAIL_NOT_CONFIGURED", "EMAIL_DELIVERY_FAILED"].includes(error?.code)) {
+      if (error.verification) {
+        return ok(
+          { otpRequired: true, deliveryFailed: true, ...error.verification },
+          "Open the verification screen, then resend after the email sender is fixed.",
+          202,
+        );
+      }
       return fail("Email verification is temporarily unavailable.", 503);
     }
     return handleApiError(error);

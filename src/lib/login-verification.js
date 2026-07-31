@@ -36,6 +36,11 @@ export async function issueLoginVerification(user, purpose) {
     codeHash: codeDigest(challengeId, code, purpose),
     expiresAt,
   });
+  const verification = {
+    challengeId,
+    emailHint: maskEmail(user.email),
+    expiresInSeconds: Math.floor(LOGIN_CODE_TTL_MS / 1000),
+  };
   try {
     await sendLoginCodeEmail({
       to: user.email,
@@ -43,14 +48,10 @@ export async function issueLoginVerification(user, purpose) {
       deliveryId: randomUUID(),
     });
   } catch (error) {
-    await LoginVerification.deleteOne({ _id: challengeId });
+    error.verification = verification;
     throw error;
   }
-  return {
-    challengeId,
-    emailHint: maskEmail(user.email),
-    expiresInSeconds: Math.floor(LOGIN_CODE_TTL_MS / 1000),
-  };
+  return verification;
 }
 
 export async function verifyLoginCode(challengeId, code) {

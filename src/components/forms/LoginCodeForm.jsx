@@ -41,7 +41,8 @@ export default function LoginCodeForm({ challenge, onChallenge, onCancel, onVeri
       if (!response.ok) return toast.error(result.message);
       setCode("");
       onChallenge(result.data);
-      toast.success(result.message);
+      if (result.data?.deliveryFailed) toast.error(result.message);
+      else toast.success(result.message);
     } finally {
       setResending(false);
     }
@@ -51,7 +52,8 @@ export default function LoginCodeForm({ challenge, onChallenge, onCancel, onVeri
     <div>
       <span className="grid size-11 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><MailCheck size={21} /></span>
       <h2 className="mt-6 text-2xl font-semibold">Check your email</h2>
-      <p className="mt-2 text-sm leading-6 text-neutral-500">Enter the six-digit code sent to <strong className="font-semibold text-neutral-700">{challenge.emailHint}</strong>. The code expires in 10 minutes.</p>
+      <p className="mt-2 text-sm leading-6 text-neutral-500">{challenge.deliveryFailed ? "Your verification screen is ready, but the email provider did not deliver the code." : <>Enter the six-digit code sent to <strong className="font-semibold text-neutral-700">{challenge.emailHint}</strong>.</>} The code expires in 10 minutes.</p>
+      {challenge.deliveryFailed && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-5 text-amber-800">Fix the sender configuration, then select <strong>Resend code</strong>.</p>}
       <form className="mt-7 space-y-4" onSubmit={verify}>
         <label className="block">
           <span className="label">Verification code</span>

@@ -31,7 +31,8 @@ export default function AuthForm() {
       toast.error(result.message);
       return;
     }
-    toast.success(result.message);
+    if (result.data?.deliveryFailed) toast.error(result.message);
+    else toast.success(result.message);
     if (result.data?.otpRequired) {
       setChallenge(result.data);
       return;

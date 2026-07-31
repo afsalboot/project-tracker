@@ -69,7 +69,14 @@ export async function POST(request) {
       return fail("An account with this email already exists. Sign in instead.", 409);
     }
     if (["EMAIL_NOT_CONFIGURED", "EMAIL_DELIVERY_FAILED"].includes(error?.code)) {
-      return fail("The account is waiting for verification, but the email could not be sent. Check the sender configuration and try again.", 503);
+      if (error.verification) {
+        return ok(
+          { otpRequired: true, deliveryFailed: true, ...error.verification },
+          "Your account is ready for verification, but the code could not be emailed. Fix the sender and use Resend code.",
+          202,
+        );
+      }
+      return fail("The verification email could not be sent. Check the sender configuration and try again.", 503);
     }
     return handleApiError(error);
   }
