@@ -140,7 +140,7 @@ export default function Dropdown({
                 type="button"
                 role="option"
                 aria-selected={active}
-                className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${active ? "bg-emerald-50 font-semibold text-emerald-800" : "text-neutral-700 hover:bg-neutral-50"}`}
+                className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition ${active ? "bg-emerald-50 font-semibold text-emerald-800" : "text-neutral-700 hover:bg-emerald-50/70 hover:text-emerald-800"}`}
                 key={option.value}
                 onClick={() => choose(option.value)}
               >

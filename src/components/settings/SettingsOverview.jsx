@@ -3,49 +3,70 @@ import {
   ArrowRight,
   Building2,
   ChartNoAxesCombined,
-  Eye,
   KeyRound,
-  ShieldCheck,
+  Palette,
+  SlidersHorizontal,
+  UserRound,
   Users,
-  Wrench,
 } from "lucide-react";
 import { PageIntro } from "@/components/ui";
 
 const sections = [
+  {
+    href: "/settings/profile",
+    title: "Profile",
+    description: "View your account, choose a username, edit profile details, and change your password.",
+    icon: UserRound,
+    tone: "bg-emerald-50 text-emerald-700",
+  },
   {
     href: "/settings/workspace",
     title: "Workspace",
     description: "Edit the workspace name and choose Personal, Organization, or Team mode.",
     icon: Building2,
     tone: "bg-emerald-50 text-emerald-700",
+    tabPermission: "settings.workspace",
   },
   {
     href: "/settings/users",
     title: "Users",
     description: "Add users, assign saved roles, and manage existing access.",
     icon: Users,
-    tone: "bg-sky-50 text-sky-700",
+    tone: "bg-emerald-50 text-emerald-700",
+    tabPermission: "settings.users",
+  },
+  {
+    href: "/settings/project-customization",
+    title: "Project & Task Setup",
+    description: "Manage stages, statuses, environments, templates, types, and platforms used in forms.",
+    icon: SlidersHorizontal,
+    tone: "bg-emerald-50 text-emerald-700",
+    tabPermission: "settings.project_customization",
+  },
+  {
+    href: "/settings/appearance",
+    title: "Appearance",
+    description: "Choose the shared color theme used throughout the workspace.",
+    icon: Palette,
+    tone: "bg-emerald-50 text-emerald-700",
+    tabPermission: "settings.appearance",
   },
   {
     href: "/settings/display",
     title: "Team & Dashboard",
     description: "Choose highlighted Team roles and the roles included in Dashboard allocation analytics.",
     icon: ChartNoAxesCombined,
-    tone: "bg-amber-50 text-amber-700",
+    tone: "bg-emerald-50 text-emerald-700",
+    tabPermission: "settings.display",
   },
   {
     href: "/settings/roles",
     title: "Roles & permissions",
     description: "Create roles and configure module access, record actions, and administration.",
     icon: KeyRound,
-    tone: "bg-violet-50 text-violet-700",
+    tone: "bg-emerald-50 text-emerald-700",
+    tabPermission: "settings.roles",
   },
-];
-
-const levels = [
-  [Eye, "Module Access", "Control which application modules a role can open."],
-  [Wrench, "Record Permissions", "Set View, Create, Edit, Archive, Delete, and Manage actions under Project, Task, and User."],
-  [ShieldCheck, "Administration", "Protect workspace configuration and role administration."],
 ];
 
 export default function SettingsOverview({ user }) {
@@ -54,8 +75,10 @@ export default function SettingsOverview({ user }) {
     user.workspace?.roles
       ?.find((role) => role.key === user.role)
       ?.permissions?.includes(permission);
-  const visibleSections = sections.filter(({ href }) => {
-    if (href === "/settings/workspace") return hasPermission("workspace.manage");
+  const visibleSections = sections.filter(({ href, tabPermission }) => {
+    if (tabPermission && !hasPermission(tabPermission)) return false;
+    if (user.workspace?.type === "personal" && ["/settings/users", "/settings/display", "/settings/roles"].includes(href)) return false;
+    if (["/settings/workspace", "/settings/appearance", "/settings/project-customization"].includes(href)) return hasPermission("workspace.manage");
     if (href === "/settings/users") {
       return ["members.view", "members.create", "members.manage"].some(
         hasPermission,
@@ -70,7 +93,7 @@ export default function SettingsOverview({ user }) {
       <PageIntro
         eyebrow="Administration"
         title="Settings"
-        description="Workspace configuration, users, roles, and permissions now live on separate pages."
+        description={user.workspace?.type === "personal" ? "Manage your personal workspace and customize project and task fields." : "Workspace configuration, users, roles, and permissions now live on separate pages."}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -86,18 +109,6 @@ export default function SettingsOverview({ user }) {
         ))}
       </div>
 
-      <section className="card mt-5 p-5 sm:p-6">
-        <h3 className="font-semibold">Permission levels</h3>
-        <p className="mt-1 text-sm text-neutral-500">Each saved role can have a different combination from these three groups.</p>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {levels.map(([Icon, title, description]) => (
-            <div className="flex gap-3 rounded-xl border border-neutral-200 p-4" key={title}>
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-neutral-100 text-neutral-600"><Icon size={17} /></span>
-              <div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs leading-5 text-neutral-500">{description}</p></div>
-            </div>
-          ))}
-        </div>
-      </section>
     </>
   );
 }

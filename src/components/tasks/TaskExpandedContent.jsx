@@ -4,17 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { CalendarDays, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PRIORITIES } from "@/constants/project";
-import { TASK_STATUSES } from "@/constants/task";
 import { Badge, DateText } from "@/components/ui";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import TaskDialog from "@/components/forms/TaskDialog";
 import TaskActionsMenu from "@/components/tasks/TaskActionsMenu";
 import TaskCommentsPanel from "@/components/tasks/TaskCommentsPanel";
 import Dropdown from "@/components/ui/Dropdown";
+import useProjectCustomization from "@/components/settings/useProjectCustomization";
 
-const emptySubtask = { title: "", description: "", status: "To Do", priority: "Medium", dueDate: "" };
+const emptySubtask = { title: "", description: "", status: "", priority: "Medium", dueDate: "" };
 
 export default function TaskExpandedContent({ task, permissions = [], onChanged }) {
+  const { customization } = useProjectCustomization();
   const [subtasks, setSubtasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -27,6 +28,10 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
   const canDelete = permissions.includes("tasks.delete");
   const taskId = task._id;
   const projectId = task.projectId?._id || task.projectId;
+  const statusOptions = customization.taskStatuses.filter((item) => item.enabled).map((item) => item.label);
+  const showStatus = statusOptions.length > 0;
+  const completedStatus = customization.taskStatuses.find((item) => item.id === "completed")?.label || "Completed";
+  const defaultStatus = customization.taskStatuses.find((item) => item.id === "to-do" && item.enabled)?.label || statusOptions[0] || "To Do";
 
   const load = useCallback(async () => {
     const response = await fetch(`/api/tasks/${taskId}/subtasks`);
@@ -47,13 +52,13 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
     const response = await fetch(`/api/tasks/${taskId}/subtasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subtask),
+      body: JSON.stringify({ ...subtask, status: subtask.status || defaultStatus }),
     });
     const result = await response.json();
     setSaving(false);
     if (!response.ok) return toast.error(result.message);
     toast.success(result.message);
-    setSubtask(emptySubtask);
+    setSubtask({ ...emptySubtask, status: defaultStatus });
     setShowAdd(false);
     load();
     onChanged?.();
@@ -90,20 +95,20 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
     <>
       <div className="col-span-full space-y-4 border-t border-neutral-100 bg-neutral-50/70 p-4 sm:p-5">
         <section className="rounded-xl border border-neutral-200 bg-white p-4">
-          <div className="flex flex-wrap gap-2"><Badge>{task.status}</Badge><Badge>{task.priority}</Badge><span className="inline-flex items-center gap-1 text-xs text-neutral-500"><CalendarDays size={14} /><DateText value={task.dueDate} /></span></div>
+          <div className="flex flex-wrap gap-2">{showStatus && <Badge>{task.status}</Badge>}<Badge>{task.priority}</Badge><span className="inline-flex items-center gap-1 text-xs text-neutral-500"><CalendarDays size={14} /><DateText value={task.dueDate} /></span></div>
           <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-neutral-600">{task.description || "No task description."}</p>
         </section>
 
         <section className="overflow-visible rounded-xl border border-neutral-200 bg-white">
           <div className="flex items-center justify-between gap-3 border-b border-neutral-100 p-4 sm:px-5">
-            <div><h3 className="font-semibold">Subtasks</h3><p className="text-xs text-neutral-500">{subtasks.filter((item) => item.status === "Completed").length} of {subtasks.length} completed</p></div>
+            <div><h3 className="font-semibold">Subtasks</h3>{showStatus && <p className="text-xs text-neutral-500">{subtasks.filter((item) => item.status === completedStatus).length} of {subtasks.length} completed</p>}</div>
             {canCreate && <button className="btn btn-primary" onClick={() => setShowAdd((value) => !value)}><Plus size={15} />Add subtask</button>}
           </div>
 
           {showAdd && canCreate && (
             <form className="grid gap-3 border-b border-neutral-100 bg-neutral-50/70 p-4 sm:grid-cols-2 sm:p-5" onSubmit={addSubtask}>
               <label className="sm:col-span-2"><span className="label">Subtask title</span><input className="field" required minLength={2} value={subtask.title} onChange={(event) => setSubtask({ ...subtask, title: event.target.value })} /></label>
-              <label><span className="label">Status</span><Dropdown value={subtask.status} onChange={(status) => setSubtask({ ...subtask, status })} options={TASK_STATUSES} /></label>
+              {showStatus && <label><span className="label">Status</span><Dropdown value={subtask.status || defaultStatus} onChange={(status) => setSubtask({ ...subtask, status })} options={statusOptions} /></label>}
               <label><span className="label">Priority</span><Dropdown value={subtask.priority} onChange={(priority) => setSubtask({ ...subtask, priority })} options={PRIORITIES} /></label>
               <label><span className="label">Due date</span><input className="field" type="date" value={subtask.dueDate} onChange={(event) => setSubtask({ ...subtask, dueDate: event.target.value })} /></label>
               <label className="sm:col-span-2"><span className="label">Description</span><textarea className="field min-h-24" value={subtask.description} onChange={(event) => setSubtask({ ...subtask, description: event.target.value })} /></label>
@@ -119,7 +124,7 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
                     <div className="min-w-0"><p className="truncate text-sm font-semibold">{item.title}</p><div className="mt-1 flex items-center gap-2 text-xs text-neutral-500"><Badge>{item.priority}</Badge><DateText value={item.dueDate} /></div></div>
                     <Badge>{item.status}</Badge>
                     {item.isCreator && <div className="col-span-2 justify-self-end sm:col-span-1">
-                      <TaskActionsMenu task={item} canEdit={canEdit} canDelete={canDelete} onEdit={() => setEditTarget(item)} onToggleStatus={() => updateStatus(item, item.status === "Completed" ? "To Do" : "Completed")} onDelete={() => setDeleteTarget(item)} />
+                      <TaskActionsMenu task={item} canEdit={canEdit} canDelete={canDelete} canChangeStatus={item.status === completedStatus ? statusOptions.includes(defaultStatus) : statusOptions.includes(completedStatus)} completedStatus={completedStatus} onEdit={() => setEditTarget(item)} onToggleStatus={() => updateStatus(item, item.status === completedStatus ? defaultStatus : completedStatus)} onDelete={() => setDeleteTarget(item)} />
                     </div>}
                   </summary>
                   <div className="border-t border-neutral-100 bg-neutral-50/60 p-4 sm:px-5">

@@ -3,6 +3,16 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      match: /^[a-z0-9._-]+$/,
+    },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, select: false },
     role: { type: String, trim: true, maxlength: 64, default: "member" },
@@ -13,6 +23,7 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
     sessionVersion: { type: Number, min: 0, default: 0, select: false },
+    notificationReadAt: { type: Date, default: null },
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Workspace",

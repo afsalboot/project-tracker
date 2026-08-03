@@ -4,20 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  Palette,
   ChartNoAxesCombined,
   ChevronRight,
   KeyRound,
-  Settings2,
+  SlidersHorizontal,
+  UserRound,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sections = [
-  { href: "/settings", label: "Overview", icon: Settings2, exact: true },
-  { href: "/settings/workspace", label: "Workspace", icon: Building2 },
-  { href: "/settings/users", label: "Users", icon: Users },
-  { href: "/settings/display", label: "Team & Dashboard", icon: ChartNoAxesCombined },
-  { href: "/settings/roles", label: "Roles & permissions", icon: KeyRound },
+  { href: "/settings/profile", label: "Profile", icon: UserRound },
+  { href: "/settings/workspace", label: "Workspace", icon: Building2, tabPermission: "settings.workspace" },
+  { href: "/settings/project-customization", label: "Project & Task Setup", icon: SlidersHorizontal, tabPermission: "settings.project_customization" },
+  { href: "/settings/appearance", label: "Appearance", icon: Palette, tabPermission: "settings.appearance" },
+  { href: "/settings/users", label: "Users", icon: Users, tabPermission: "settings.users" },
+  { href: "/settings/display", label: "Team & Dashboard", icon: ChartNoAxesCombined, tabPermission: "settings.display" },
+  { href: "/settings/roles", label: "Roles & permissions", icon: KeyRound, tabPermission: "settings.roles" },
 ];
 
 export default function SettingsSectionNav({ user }) {
@@ -28,8 +32,10 @@ export default function SettingsSectionNav({ user }) {
       ?.find((role) => role.key === user.role)
       ?.permissions?.includes(permission);
 
-  const visibleSections = sections.filter(({ href }) => {
-    if (href === "/settings/workspace") return hasPermission("workspace.manage");
+  const visibleSections = sections.filter(({ href, tabPermission }) => {
+    if (tabPermission && !hasPermission(tabPermission)) return false;
+    if (user.workspace?.type === "personal" && ["/settings/users", "/settings/display", "/settings/roles"].includes(href)) return false;
+    if (["/settings/workspace", "/settings/appearance", "/settings/project-customization"].includes(href)) return hasPermission("workspace.manage");
     if (href === "/settings/users") {
       return hasPermission("members.view") ||
         hasPermission("members.create") ||
@@ -46,8 +52,8 @@ export default function SettingsSectionNav({ user }) {
           Settings
         </p>
         <nav className="flex gap-1 overflow-x-auto xl:block xl:space-y-1" aria-label="Settings sections">
-          {visibleSections.map(({ href, label, icon: Icon, exact }) => {
-            const active = exact ? path === href : path.startsWith(href) ||
+          {visibleSections.map(({ href, label, icon: Icon }) => {
+            const active = path.startsWith(href) ||
               (href === "/settings/roles" && path.startsWith("/settings/permissions"));
             return (
               <Link

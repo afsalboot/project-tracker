@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Search, ShieldCheck, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, EmptyState, PageIntro, Progress } from "@/components/ui";
@@ -122,17 +122,34 @@ function HighlightCard({ member, roles }) {
         <div className="min-w-0"><p className="truncate font-semibold">{member.name}</p><p className="text-xs text-neutral-500">{roleName(roles, member.role)}</p></div>
         <RoleIcon className={`ml-auto ${member.role === "owner" ? "text-amber-600" : "text-emerald-700"}`} role={role} size={16} />
       </div>
-      <p className="mt-4 text-xs text-neutral-500">{member.projects.length} active project{member.projects.length === 1 ? "" : "s"}</p>
+      <div className="mt-4 flex items-center justify-between gap-3 text-xs"><span className="font-semibold text-neutral-700">{member.totalProjects || 0} total project{member.totalProjects === 1 ? "" : "s"}</span><span className="text-neutral-400">{member.projects.length} active</span></div>
     </article>
   );
 }
 
 function MemberRow({ member, roles, canManage, currentUserId, onRole, onRemove }) {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
   const taskTotal = member.projects.reduce((sum, item) => sum + item.taskStats.tasks, 0);
   const subtaskTotal = member.projects.reduce((sum, item) => sum + item.taskStats.subtasks, 0);
   const completedSubtasks = member.projects.reduce((sum, item) => sum + item.taskStats.completedSubtasks, 0);
   const editable = canManage && member.role !== "owner";
+
+  useEffect(() => {
+    if (!open) return;
+    function closeOutside(event) {
+      if (!menuRef.current?.contains(event.target)) setOpen(false);
+    }
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
 
   return (
     <article className="grid gap-4 p-4 sm:p-5 lg:grid-cols-[220px_150px_minmax(0,1fr)_150px_44px] lg:items-center">
@@ -141,8 +158,8 @@ function MemberRow({ member, roles, canManage, currentUserId, onRole, onRemove }
       <div className="min-w-0">
         {member.projects.length ? <div className="flex flex-wrap gap-1.5">{member.projects.slice(0, 4).map((item) => <span className="max-w-40 truncate rounded-full bg-neutral-100 px-2.5 py-1 text-xs" key={item._id}>{item.name}</span>)}{member.projects.length > 4 && <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs">+{member.projects.length - 4}</span>}</div> : <span className="text-xs text-neutral-400">No project allocation</span>}
       </div>
-      <div className="text-xs text-neutral-500"><p>{taskTotal} tasks</p><p className="mt-1">{completedSubtasks} of {subtaskTotal} subtasks</p></div>
-      <div className="relative justify-self-end">
+      <div className="text-xs text-neutral-500"><p className="font-semibold text-neutral-700">{member.totalProjects || 0} project{member.totalProjects === 1 ? "" : "s"}</p><p className="mt-1">{taskTotal} tasks</p><p className="mt-1">{completedSubtasks} of {subtaskTotal} subtasks</p></div>
+      <div className="relative justify-self-end" ref={menuRef}>
         {editable && <button className="grid size-10 place-items-center rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50" onClick={() => setOpen((value) => !value)} aria-label={`Actions for ${member.name}`}><MoreHorizontal size={17} /></button>}
         {open && <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-neutral-200 bg-white p-2 shadow-xl">
           <div><span className="px-2 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Change role</span><Dropdown className="mt-1" value={member.role} onChange={(value) => { onRole(member._id, value); setOpen(false); }} options={roles.filter((item) => item.key !== "owner").map((item) => ({ value: item.key, label: item.name, icon: <RoleIcon role={item} size={15} /> }))} /></div>

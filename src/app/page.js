@@ -11,10 +11,9 @@ export default async function Home() {
     ["projects.view", "/projects"],
     ["tasks.view", "/tasks"],
     ["completed.view", "/completed"],
-    ["settings.view", "/settings"],
   ];
   const workspaceHref = user
-    ? destinations.find(([permission]) => hasWorkspacePermission(user.workspace, user.role, permission))?.[1] || "/access-denied"
+    ? destinations.find(([permission]) => hasWorkspacePermission(user.workspace, user.role, permission))?.[1] || "/settings"
     : "/login";
 
   return (

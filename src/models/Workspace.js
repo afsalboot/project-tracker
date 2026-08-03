@@ -47,6 +47,15 @@ const workspaceSchema = new mongoose.Schema(
       type: [String],
       default: () => ["owner", "admin"],
     },
+    customization: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    sidebarTheme: {
+      type: String,
+      enum: ["forest", "midnight", "ocean", "plum", "graphite"],
+      default: "forest",
+    },
   },
   { timestamps: true },
 );

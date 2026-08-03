@@ -21,7 +21,7 @@ export async function GET() {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.view")) {
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.workspace")) {
       return fail("You do not have permission to view settings.", 403);
     }
     const canViewMembers = hasWorkspacePermission(
@@ -76,6 +76,7 @@ export async function PATCH(request) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.workspace")) return fail("You do not have permission to view workspace settings.", 403);
     if (!canManageWorkspace(auth.role, auth.workspace)) {
       return fail("Only workspace owners and admins can change settings.", 403);
     }

@@ -4,8 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, endOfWeek, isBefore, isSameDay, startOfDay } from "date-fns";
 import { GripVertical, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
-import { ENVIRONMENTS, PRIORITIES } from "@/constants/project";
-import { TASK_STATUSES } from "@/constants/task";
+import { PRIORITIES } from "@/constants/project";
 import { Badge, DateText, EmptyState, FilterPanel, PageIntro } from "@/components/ui";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import TaskDialog from "@/components/forms/TaskDialog";
@@ -14,18 +13,34 @@ import TaskExpandedContent from "@/components/tasks/TaskExpandedContent";
 import SubtaskSummary from "@/components/tasks/SubtaskSummary";
 import AssigneeSummary from "@/components/ui/AssigneeSummary";
 import Dropdown from "@/components/ui/Dropdown";
+import useProjectCustomization from "@/components/settings/useProjectCustomization";
 
 export default function TasksView({ mode = "list", permissions = [] }) {
+  const { customization, workspaceType, loading: customizationLoading } = useProjectCustomization();
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [recordUsers, setRecordUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState(null);
   const [detailsTask, setDetailsTask] = useState(null);
   const [deleteTask, setDeleteTask] = useState(null);
-  const [filters, setFilters] = useState({ search: "", projectId: [], status: mode === "completed" ? ["Completed"] : [], priority: [], environment: [] });
+  const [filters, setFilters] = useState({ search: "", userId: [], projectId: [], status: mode === "completed" ? ["Completed"] : [], priority: [], environment: [] });
+  const canFilterUsers = permissions.includes("tasks.view_others");
   const canCreate = permissions.includes("tasks.create");
   const canEdit = permissions.includes("tasks.edit");
   const canDelete = permissions.includes("tasks.delete");
+  const statusOptions = customization.taskStatuses.filter((item) => item.enabled).map((item) => item.label);
+  const environmentOptions = customization.environments.filter((item) => item.enabled).map((item) => item.label);
+  const showStatus = statusOptions.length > 0;
+  const showEnvironment = environmentOptions.length > 0;
+  const completedStatus = customization.taskStatuses.find((item) => item.id === "completed")?.label || "Completed";
+  const defaultStatus = customization.taskStatuses.find((item) => item.id === "to-do" && item.enabled)?.label || statusOptions[0] || "To Do";
+
+  useEffect(() => {
+    if (mode !== "completed" || customizationLoading) return;
+    const timer = setTimeout(() => setFilters((current) => current.status.length === 1 && current.status[0] === completedStatus ? current : { ...current, status: [completedStatus] }), 0);
+    return () => clearTimeout(timer);
+  }, [completedStatus, customizationLoading, mode]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,6 +58,14 @@ export default function TasksView({ mode = "list", permissions = [] }) {
     const timer = setTimeout(load, 150);
     return () => clearTimeout(timer);
   }, [load]);
+  useEffect(() => {
+    if (!canFilterUsers) return;
+    const timer = setTimeout(async () => {
+      const result = await fetch("/api/workspace/record-users?scope=tasks").then((response) => response.json());
+      if (result.success) setRecordUsers(result.data.users);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [canFilterUsers]);
 
   async function update(taskId, status) {
     const result = await fetch(`/api/tasks/${taskId}/status`, {
@@ -81,28 +104,29 @@ export default function TasksView({ mode = "list", permissions = [] }) {
   const title = mode === "board" ? "Task board" : mode === "completed" ? "Completed work" : "My tasks";
   const description = mode === "board" ? "Drag tasks between stages. Only task creators can move their work." : mode === "completed" ? "A searchable history of completed tasks and their delivery context." : "Plan daily work around deadlines, blockers and priority.";
   const toggle = (task) => setDetailsTask(detailsTask?._id === task._id ? null : task);
-  const commonProps = { update, edit: setDialog, expandedId: detailsTask?._id, toggle, remove, permissions, onChanged: load, canEdit, canDelete };
+  const commonProps = { update, edit: setDialog, expandedId: detailsTask?._id, toggle, remove, permissions, onChanged: load, canEdit, canDelete, statusOptions, completedStatus, defaultStatus, showStatus, showEnvironment, showPeople: Boolean(workspaceType && workspaceType !== "personal") };
 
   return (
     <>
       <PageIntro eyebrow={mode === "completed" ? "History" : "Execution"} title={title} description={description} actions={canCreate && <button className="btn btn-primary" onClick={() => setDialog({})}><Plus size={17} />Add task</button>} />
       <FilterPanel
         title="Task filters"
-        activeCount={(filters.search ? 1 : 0) + ["projectId", "status", "priority", "environment"].reduce((sum, key) => sum + filters[key].length, 0)}
-        onClear={() => setFilters({ ...filters, search: "", projectId: [], status: mode === "completed" ? ["Completed"] : [], priority: [], environment: [] })}
+        activeCount={(filters.search ? 1 : 0) + ["userId", "projectId", "priority", ...(showStatus ? ["status"] : []), ...(showEnvironment ? ["environment"] : [])].reduce((sum, key) => sum + filters[key].length, 0)}
+        onClear={() => setFilters({ ...filters, search: "", userId: [], projectId: [], status: mode === "completed" ? [completedStatus] : [], priority: [], environment: [] })}
       >
-        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-7">
           <label className="relative sm:col-span-2 xl:col-span-2"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={17} /><input className="field search-field" aria-label="Search tasks" placeholder="Search tasks…" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} /></label>
+          {canFilterUsers && <Filter label="All creators" items={recordUsers.map((user) => [user._id, user.username ? `${user.name} (@${user.username})` : user.name])} value={filters.userId} change={(userId) => setFilters({ ...filters, userId })} />}
           <Filter label="All projects" items={projects.map((item) => [item._id, item.name])} value={filters.projectId} change={(projectId) => setFilters({ ...filters, projectId })} />
-          {mode !== "completed" && <Filter label="All statuses" items={TASK_STATUSES.map((item) => [item, item])} value={filters.status} change={(status) => setFilters({ ...filters, status })} />}
+          {mode !== "completed" && showStatus && <Filter label="All statuses" items={statusOptions.map((item) => [item, item])} value={filters.status} change={(status) => setFilters({ ...filters, status })} />}
           <Filter label="All priorities" items={PRIORITIES.map((item) => [item, item])} value={filters.priority} change={(priority) => setFilters({ ...filters, priority })} />
-          <Filter label="All environments" items={ENVIRONMENTS.map((item) => [item, item])} value={filters.environment} change={(environment) => setFilters({ ...filters, environment })} />
+          {showEnvironment && <Filter label="All environments" items={environmentOptions.map((item) => [item, item])} value={filters.environment} change={(environment) => setFilters({ ...filters, environment })} />}
         </div>
       </FilterPanel>
 
       {loading ? <div className="skeleton h-96" /> : tasks.length === 0 ? (
         <EmptyState title={mode === "completed" ? "No completed work yet" : "No tasks found"} description={mode === "completed" ? "Completed tasks will remain searchable here." : "Create a task or adjust the active filters."} />
-      ) : mode === "board" ? (
+      ) : mode === "board" && showStatus ? (
         <Board tasks={tasks} {...commonProps} />
       ) : mode === "completed" ? (
         <TaskList tasks={tasks} showCompleted {...commonProps} />
@@ -125,20 +149,20 @@ export default function TasksView({ mode = "list", permissions = [] }) {
   );
 }
 
-function TaskList({ tasks, update, edit, expandedId, toggle, remove, permissions, onChanged, showCompleted, canEdit, canDelete }) {
+function TaskList({ tasks, update, edit, expandedId, toggle, remove, permissions, onChanged, showCompleted, canEdit, canDelete, statusOptions, completedStatus, defaultStatus, showStatus, showEnvironment, showPeople }) {
   return <div className="space-y-3">{tasks.map((task) => (
     <article key={task._id} className="card relative overflow-visible p-4 sm:p-5">
       <div className="min-w-0 sm:pr-44">
         <button className="block max-w-full truncate text-left font-semibold hover:text-emerald-700" onClick={() => toggle(task)} aria-expanded={expandedId === task._id}>{task.title}</button>
-        <p className="mt-1 truncate text-xs text-neutral-500">{task.projectId?.name || "Project"} · {task.environment}</p>
+        <p className="mt-1 truncate text-xs text-neutral-500">{task.projectId?.name || "Project"}{showEnvironment ? ` · ${task.environment}` : ""}</p>
         <SubtaskSummary task={task} className="mt-2" />
       </div>
-      <div className="mt-3 flex items-center gap-2 sm:absolute sm:right-5 sm:top-4 sm:mt-0"><StatusPill status={task.status} />{task.isCreator && <TaskActionsMenu task={task} canEdit={canEdit} canDelete={canDelete} onEdit={() => edit(task)} onToggleStatus={() => update(task._id, task.status === "Completed" ? "To Do" : "Completed")} onDelete={() => remove(task)} />}</div>
+      <div className="mt-3 flex items-center gap-2 sm:absolute sm:right-5 sm:top-4 sm:mt-0">{showStatus && <StatusPill status={task.status} />}{task.isCreator && <TaskActionsMenu task={task} canEdit={canEdit} canDelete={canDelete} canChangeStatus={showStatus && (task.status === completedStatus ? statusOptions.includes(defaultStatus) : statusOptions.includes(completedStatus))} completedStatus={completedStatus} onEdit={() => edit(task)} onToggleStatus={() => update(task._id, task.status === completedStatus ? defaultStatus : completedStatus)} onDelete={() => remove(task)} />}</div>
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-neutral-100 pt-3">
         <Badge>{task.priority}</Badge>
         <span className="whitespace-nowrap text-xs"><DateText value={showCompleted ? task.completedDate : task.dueDate} /></span>
-        <AssigneeSummary users={[task.userId]} empty="Creator unavailable" />
-        {!task.isCreator && <span className="ml-auto rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500">View only</span>}
+        {showPeople && <AssigneeSummary users={[task.userId]} empty="Creator unavailable" />}
+        {showPeople && !task.isCreator && <span className="ml-auto rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500">View only</span>}
       </div>
       {showCompleted && task.completedDate && <p className="mt-2 text-[11px] text-neutral-400 sm:hidden">Completed {new Date(task.completedDate).toLocaleDateString()}</p>}
       {expandedId === task._id && <TaskExpandedContent task={task} permissions={permissions} onChanged={onChanged} />}
@@ -146,7 +170,7 @@ function TaskList({ tasks, update, edit, expandedId, toggle, remove, permissions
   ))}</div>;
 }
 
-function Board({ tasks, update, edit, expandedId, toggle, remove, permissions, onChanged, canEdit, canDelete }) {
+function Board({ tasks, update, edit, expandedId, toggle, remove, permissions, onChanged, canEdit, canDelete, statusOptions, completedStatus, defaultStatus, showPeople }) {
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dropStatus, setDropStatus] = useState(null);
 
@@ -166,7 +190,7 @@ function Board({ tasks, update, edit, expandedId, toggle, remove, permissions, o
   return (
     <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain pb-4 [scrollbar-width:thin]">
       <div className="grid min-w-max grid-flow-col auto-cols-[minmax(280px,320px)] items-stretch gap-4">
-        {TASK_STATUSES.map((status) => {
+        {statusOptions.map((status) => {
           const items = tasks.filter((task) => task.status === status);
           const activeDrop = dropStatus === status && draggedTaskId;
           return (
@@ -203,12 +227,12 @@ function Board({ tasks, update, edit, expandedId, toggle, remove, permissions, o
                       <div className="flex items-start gap-2">
                         {draggable && <GripVertical size={17} className="mt-0.5 shrink-0 text-neutral-300" aria-label="Drag task" />}
                         <button className="line-clamp-2 min-h-10 min-w-0 flex-1 text-left font-semibold leading-5 hover:text-emerald-700" onClick={() => toggle(task)} aria-expanded={expandedId === task._id}>{task.title}</button>
-                        {task.isCreator && <TaskActionsMenu task={task} canEdit={canEdit} canDelete={canDelete} onEdit={() => edit(task)} onToggleStatus={() => update(task._id, task.status === "Completed" ? "To Do" : "Completed")} onDelete={() => remove(task)} />}
+                        {task.isCreator && <TaskActionsMenu task={task} canEdit={canEdit} canDelete={canDelete} canChangeStatus={task.status === completedStatus ? statusOptions.includes(defaultStatus) : statusOptions.includes(completedStatus)} completedStatus={completedStatus} onEdit={() => edit(task)} onToggleStatus={() => update(task._id, task.status === completedStatus ? defaultStatus : completedStatus)} onDelete={() => remove(task)} />}
                       </div>
                       <p className="mt-2 truncate text-xs font-medium text-neutral-500">{task.projectId?.name || "Project"}</p>
                       <div className="mt-4 flex flex-wrap items-center gap-2"><Badge>{task.priority}</Badge><span className="ml-auto whitespace-nowrap text-xs text-neutral-500"><DateText value={task.dueDate} /></span></div>
-                      <div className="mt-3 border-t border-neutral-100 pt-3"><SubtaskSummary task={task} /><AssigneeSummary users={[task.userId]} empty="Creator unavailable" className="mt-2" /></div>
-                      {!task.isCreator && <p className="mt-3 rounded-lg bg-neutral-50 px-2.5 py-2 text-[11px] font-medium text-neutral-400">Project access · View only</p>}
+                      <div className="mt-3 border-t border-neutral-100 pt-3"><SubtaskSummary task={task} />{showPeople && <AssigneeSummary users={[task.userId]} empty="Creator unavailable" className="mt-2" />}</div>
+                      {showPeople && !task.isCreator && <p className="mt-3 rounded-lg bg-neutral-50 px-2.5 py-2 text-[11px] font-medium text-neutral-400">Project access · View only</p>}
                       {expandedId === task._id && <TaskExpandedContent task={task} permissions={permissions} onChanged={onChanged} />}
                     </article>
                   );

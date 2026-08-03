@@ -27,7 +27,8 @@ export async function GET(_request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.view")) {
+    if (auth.workspace.type === "personal") return fail("Saved roles are unavailable in Personal workspaces.", 404);
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.roles")) {
       return fail("You do not have permission to view saved roles.", 403);
     }
     const { roleKey } = await params;
@@ -61,7 +62,8 @@ export async function PATCH(request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!hasWorkspacePermission(auth.workspace, auth.role, "roles.manage")) {
+    if (auth.workspace.type === "personal") return fail("Saved roles are unavailable in Personal workspaces.", 404);
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.roles") || !hasWorkspacePermission(auth.workspace, auth.role, "roles.manage")) {
       return fail("You do not have permission to edit roles.", 403);
     }
     const { roleKey } = await params;
@@ -97,7 +99,8 @@ export async function DELETE(_request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!hasWorkspacePermission(auth.workspace, auth.role, "roles.manage")) {
+    if (auth.workspace.type === "personal") return fail("Saved roles are unavailable in Personal workspaces.", 404);
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.roles") || !hasWorkspacePermission(auth.workspace, auth.role, "roles.manage")) {
       return fail("You do not have permission to delete roles.", 403);
     }
     const { roleKey } = await params;

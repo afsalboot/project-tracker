@@ -5,6 +5,7 @@ import { statusSchema } from "@/lib/validations";
 import Activity from "@/models/Activity";
 import Task from "@/models/Task";
 import { requireProjectRecordAccess } from "@/lib/project-access";
+import { activeChoice, completedTaskStatus } from "@/lib/customization";
 
 export const runtime = "nodejs";
 
@@ -19,13 +20,14 @@ export async function PATCH(request, { params }) {
     const { status } = statusSchema.parse(await request.json());
     const task = await Task.findOne({ _id: taskId, workspaceId: auth.workspaceId });
     if (!task) return fail("Task not found.", 404);
+    if (status !== task.status && !activeChoice(auth.workspace, "taskStatuses", status)) return fail("Select an enabled task status.", 422);
     const accessDenied = await requireProjectRecordAccess(auth, task.projectId);
     if (accessDenied) return accessDenied;
     const creatorDenied = requireTaskCreator(auth, task);
     if (creatorDenied) return creatorDenied;
     const previous = task.status;
     task.status = status;
-    task.completedDate = status === "Completed" ? task.completedDate || new Date() : null;
+    task.completedDate = status === completedTaskStatus(auth.workspace) ? task.completedDate || new Date() : null;
     await task.save();
     if (previous !== status) {
       await Promise.all([

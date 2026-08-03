@@ -22,6 +22,7 @@ const groupIcons = {
   visibility: Eye,
   records: Wrench,
   workspace: Settings2,
+  settings_tabs: Settings2,
 };
 
 export default function RolePermissions({ roleKey }) {

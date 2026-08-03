@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import { ENVIRONMENTS, PRIORITIES } from "@/constants/project";
-import { DEPLOYMENT_STATUSES, TASK_STATUSES } from "@/constants/task";
+import { PRIORITIES } from "@/constants/project";
+import { DEPLOYMENT_STATUSES } from "@/constants/task";
 
 const taskSchema = new mongoose.Schema(
   {
@@ -10,7 +10,7 @@ const taskSchema = new mongoose.Schema(
     parentTaskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task", default: null, index: true },
     title: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
-    status: { type: String, enum: TASK_STATUSES, default: "To Do" },
+    status: { type: String, trim: true, default: "To Do" },
     priority: { type: String, enum: PRIORITIES, default: "Medium" },
     dueDate: Date,
     completedDate: Date,
@@ -22,7 +22,7 @@ const taskSchema = new mongoose.Schema(
     fieldApiNames: [{ type: String }],
     webhookEvent: { type: String, default: "" },
     connectionName: { type: String, default: "" },
-    environment: { type: String, enum: ENVIRONMENTS, default: "Not Applicable" },
+    environment: { type: String, trim: true, default: "Not Applicable" },
     technicalNotes: { type: String, default: "" },
     blockerReason: { type: String, default: "" },
     testResult: { type: String, default: "" },

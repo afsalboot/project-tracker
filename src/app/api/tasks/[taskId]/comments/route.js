@@ -3,8 +3,10 @@ import { requireApiUser, requireTaskCreator, requireWorkspacePermission, validId
 import { taskCommentSchema } from "@/lib/validations";
 import Task from "@/models/Task";
 import TaskComment from "@/models/TaskComment";
+import User from "@/models/User";
 import { requireProjectRecordAccess } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
+import { resolveMentionedUserIds } from "@/lib/mentions";
 
 export const runtime = "nodejs";
 
@@ -20,14 +22,20 @@ export async function GET(_request, { params }) {
     if (!task) return fail("Task not found.", 404);
     const accessDenied = await requireProjectRecordAccess(auth, task.projectId);
     if (accessDenied) return accessDenied;
-    const comments = await TaskComment.find({
-      taskId,
-      workspaceId: auth.workspaceId,
-    })
-      .populate("userId", "name")
-      .sort({ createdAt: 1 })
-      .lean();
-    return ok({ comments, currentUserId: auth.userId });
+    const [comments, mentionMembers] = await Promise.all([
+      TaskComment.find({
+        taskId,
+        workspaceId: auth.workspaceId,
+      })
+        .populate("userId", "name")
+        .sort({ createdAt: 1 })
+        .lean(),
+      User.find({ workspaceId: auth.workspaceId, status: { $ne: "suspended" } })
+        .select("name username email role")
+        .sort({ name: 1 })
+        .lean(),
+    ]);
+    return ok({ comments, mentionMembers, currentUserId: auth.userId });
   } catch (error) {
     return handleApiError(error);
   }
@@ -48,8 +56,10 @@ export async function POST(request, { params }) {
     const creatorDenied = requireTaskCreator(auth, task);
     if (creatorDenied) return creatorDenied;
     const input = taskCommentSchema.parse(await request.json());
+    const mentionedUserIds = await resolveMentionedUserIds(auth.workspaceId, input.body, auth.userId);
     const comment = await TaskComment.create({
       ...input,
+      mentionedUserIds,
       userId: auth.userId,
       workspaceId: auth.workspaceId,
       projectId: task.projectId,

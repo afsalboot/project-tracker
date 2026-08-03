@@ -7,7 +7,7 @@ export const metadata = { title: "Workspace settings" };
 
 export default async function WorkspaceSettingsPage() {
   const user = await getCurrentUser();
-  if (!hasWorkspacePermission(user.workspace, user.role, "workspace.manage")) {
+  if (!hasWorkspacePermission(user.workspace, user.role, "settings.workspace") || !hasWorkspacePermission(user.workspace, user.role, "workspace.manage")) {
     redirect("/settings");
   }
   return <WorkspaceEditor />;

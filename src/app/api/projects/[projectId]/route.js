@@ -11,6 +11,7 @@ import { z } from "zod";
 import { validateAssignees } from "@/lib/assignees";
 import { projectAccessFilter } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
+import { activeChoice, blockedTaskStatus, completedProjectStage, completedTaskStatus, hasEnabledChoices, testingTaskStatus, workspaceCustomization } from "@/lib/customization";
 
 export const runtime = "nodejs";
 const deleteConfirmationSchema = z.object({
@@ -37,6 +38,9 @@ export async function GET(_request, { params }) {
     const tasks = canViewTasks
       ? await Task.find({ projectId, workspaceId: auth.workspaceId, parentTaskId: null, ...taskAccessFilter(auth) }).populate("userId", "name").sort({ sortOrder: 1, createdAt: 1 }).lean()
       : [];
+    const completedStatus = completedTaskStatus(auth.workspace);
+    const blockedStatus = blockedTaskStatus(auth.workspace);
+    const testingStatus = testingTaskStatus(auth.workspace);
     const subtaskStats = tasks.length
       ? await Task.aggregate([
         {
@@ -51,7 +55,7 @@ export async function GET(_request, { params }) {
             _id: "$parentTaskId",
             total: { $sum: 1 },
             completed: {
-              $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", completedStatus] }, 1, 0] },
             },
           },
         },
@@ -74,9 +78,9 @@ export async function GET(_request, { params }) {
       tasks: tasksWithSubtasks,
       stats: {
         total: tasksWithSubtasks.length,
-        completed: tasksWithSubtasks.filter((task) => task.status === "Completed").length,
-        blocked: tasksWithSubtasks.filter((task) => task.status === "Blocked").length,
-        testing: tasksWithSubtasks.filter((task) => task.status === "Testing").length,
+        completed: tasksWithSubtasks.filter((task) => task.status === completedStatus).length,
+        blocked: tasksWithSubtasks.filter((task) => task.status === blockedStatus).length,
+        testing: tasksWithSubtasks.filter((task) => task.status === testingStatus).length,
       },
     });
   } catch (error) {
@@ -95,16 +99,31 @@ export async function PUT(request, { params }) {
     const current = await Project.findOne({ _id: projectId, workspaceId: auth.workspaceId, ...projectAccessFilter(auth) });
     if (!current) return fail("Project not found.", 404);
     const input = projectSchema.parse(await request.json());
+    const customization = workspaceCustomization(auth.workspace);
+    const zohoProject = customization.projectPlatforms.find((item) => item.id === "zoho-project")?.label || "Zoho Project";
+    const isZohoProject = input.projectPlatform === zohoProject;
+    for (const [key, value] of [["projectStages", input.stage], ["environments", input.environment], ["projectPlatforms", input.projectPlatform]]) {
+      const unchanged = ({ projectStages: current.stage, environments: current.environment, projectPlatforms: current.projectPlatform }[key] || "General Project") === value;
+      if (!unchanged && hasEnabledChoices(auth.workspace, key) && !activeChoice(auth.workspace, key, value)) return fail(`Select an enabled ${key.replace(/([A-Z])/g, " $1").toLowerCase()}.`, 422);
+    }
+    if (isZohoProject && !input.zohoProducts.length) return fail("Select at least one Zoho platform.", 422);
+    const currentZohoProducts = current.zohoProducts?.length ? current.zohoProducts : current.zohoProduct ? [current.zohoProduct] : [];
+    if (hasEnabledChoices(auth.workspace, "zohoPlatforms") && input.zohoProducts.some((value) => !currentZohoProducts.includes(value) && !activeChoice(auth.workspace, "zohoPlatforms", value))) return fail("Select enabled Zoho platforms.", 422);
+    if (hasEnabledChoices(auth.workspace, "projectTypes") && input.projectTypes.some((value) => !(current.projectTypes || []).includes(value) && !activeChoice(auth.workspace, "projectTypes", value))) return fail("Select enabled project types.", 422);
     const currentAssignees = (current.assignedUserIds || []).map(String).sort();
     const nextAssignees = [...new Set(input.assignedUserIds || [])].sort();
+    let addedAssignees = [];
     if (currentAssignees.join(",") !== nextAssignees.join(",")) {
       const assignment = await validateAssignees(auth, nextAssignees, "projects.assign", true);
       if (assignment.response) return assignment.response;
       input.assignedUserIds = assignment.ids;
+      addedAssignees = assignment.ids.filter((id) => !currentAssignees.includes(String(id)));
     } else {
       input.assignedUserIds = current.assignedUserIds;
     }
     const { template: _template, ...fields } = input;
+    fields.zohoProducts = isZohoProject ? input.zohoProducts : [];
+    fields.zohoProduct = fields.zohoProducts[0] || "";
     let slug = current.slug;
     if (current.name !== input.name) {
       const base = slugify(input.name) || "project";
@@ -115,6 +134,7 @@ export async function PUT(request, { params }) {
       }
     }
     const previousStage = current.stage;
+    const previousDueDate = current.dueDate?.toISOString() || null;
     Object.assign(current, cleanDates(fields), { slug });
     await current.save();
     if (previousStage !== current.stage) {
@@ -125,6 +145,26 @@ export async function PUT(request, { params }) {
         action: "Project stage changed",
         previousValue: previousStage,
         newValue: current.stage,
+      });
+    }
+    const nextDueDate = current.dueDate?.toISOString() || null;
+    if (previousDueDate !== nextDueDate) {
+      await Activity.create({
+        userId: auth.userId,
+        workspaceId: auth.workspaceId,
+        projectId,
+        action: "Project due date changed",
+        previousValue: previousDueDate,
+        newValue: nextDueDate,
+      });
+    }
+    if (addedAssignees.length) {
+      await Activity.create({
+        userId: auth.userId,
+        workspaceId: auth.workspaceId,
+        projectId,
+        recipientUserIds: addedAssignees,
+        action: "Project assignment added",
       });
     }
     return ok({ project: current }, "Project updated successfully.");
@@ -149,7 +189,7 @@ export async function DELETE(request, { params }) {
     if (!confirmation.success || confirmation.data.confirmation !== project.name) {
       return fail("Type the exact project name to confirm deletion.", 422);
     }
-    if (project.stage === "Completed" || project.completedDate) {
+    if (project.stage === completedProjectStage(auth.workspace) || project.completedDate) {
       return fail("Completed projects must be archived instead of deleted.", 409);
     }
     await Promise.all([

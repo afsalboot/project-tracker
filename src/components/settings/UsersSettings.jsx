@@ -108,12 +108,12 @@ export default function UsersSettings() {
         <form className="flex min-h-0 flex-1 flex-col" onSubmit={addUser}>
           <div className="grid flex-1 gap-4 overflow-y-auto p-5 sm:grid-cols-2 sm:p-6">
           <div className="flex items-center gap-3 sm:col-span-2">
-            <span className="grid size-10 place-items-center rounded-xl bg-sky-50 text-sky-700"><UserRoundPlus size={19} /></span>
+            <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UserRoundPlus size={19} /></span>
             <div><h3 className="font-semibold">Account access</h3><p className="text-xs text-neutral-500">The user can sign in with this email and temporary password.</p></div>
           </div>
           <label><span className="label">Name</span><input className="field" required value={user.name} onChange={(event) => setUser({ ...user, name: event.target.value })} /></label>
           <label><span className="label">Email</span><input className="field" type="email" required value={user.email} onChange={(event) => setUser({ ...user, email: event.target.value })} /></label>
-          <label><span className="label">Temporary password</span><input className="field" type="password" minLength="10" maxLength="128" autoComplete="new-password" required value={user.password} onChange={(event) => setUser({ ...user, password: event.target.value })} /><span className="mt-1 block text-xs text-neutral-500">At least 10 characters with uppercase, lowercase, and a number.</span></label>
+          <label><span className="label">Temporary password</span><input className="field" type="password" minLength="8" maxLength="128" autoComplete="new-password" required value={user.password} onChange={(event) => setUser({ ...user, password: event.target.value })} /><span className="mt-1 block text-xs text-neutral-500">At least 8 characters with uppercase, lowercase, and a number.</span></label>
           <div>
             <span className="label">Saved role</span>
             <Dropdown value={selectedRole} onChange={(role) => setUser({ ...user, role })} options={roles.map((role) => ({ value: role.key, label: role.name, icon: <RoleIcon role={role} size={15} /> }))} />
@@ -140,7 +140,7 @@ export default function UsersSettings() {
                 <div className="col-span-2 col-start-2 flex min-w-0 items-center justify-between gap-2 sm:col-span-1 sm:col-start-auto">
                   <RoleBadge roles={data.workspace.roles} roleKey={member.role} />
                   {canManage && member.role !== "owner" && (
-                    <details className="group relative open:z-40">
+                    <details className="group relative open:z-40" data-action-menu>
                       <summary className="grid size-10 cursor-pointer list-none place-items-center rounded-lg border border-neutral-200 bg-white text-neutral-600 transition hover:border-emerald-200 hover:text-emerald-700 [&::-webkit-details-marker]:hidden" aria-label={`Actions for ${member.name}`}>
                         <MoreHorizontal size={18} />
                       </summary>

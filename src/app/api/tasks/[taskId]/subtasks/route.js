@@ -3,6 +3,7 @@ import { cleanDates, requireApiUser, requireTaskCreator, requireWorkspacePermiss
 import { subtaskSchema } from "@/lib/validations";
 import Activity from "@/models/Activity";
 import Task from "@/models/Task";
+import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
 import { requireProjectRecordAccess } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
 
@@ -50,6 +51,7 @@ export async function POST(request, { params }) {
       return fail("Add subtasks from the main task.", 409);
     }
     const input = subtaskSchema.parse(await request.json());
+    if (hasEnabledChoices(auth.workspace, "taskStatuses") && !activeChoice(auth.workspace, "taskStatuses", input.status)) return fail("Select an enabled task status.", 422);
     const subtask = await Task.create({
       ...cleanDates(input, ["dueDate"]),
       userId: auth.userId,
@@ -57,7 +59,7 @@ export async function POST(request, { params }) {
       projectId: parent.projectId,
       parentTaskId: parent._id,
       environment: parent.environment,
-      completedDate: input.status === "Completed" ? new Date() : null,
+      completedDate: input.status === completedTaskStatus(auth.workspace) ? new Date() : null,
       sortOrder: await Task.countDocuments({
         workspaceId: auth.workspaceId,
         parentTaskId: parent._id,

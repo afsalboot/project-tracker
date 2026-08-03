@@ -12,7 +12,7 @@ const displaySchema = z.object({
 });
 
 function permitted(auth) {
-  return hasWorkspacePermission(auth.workspace, auth.role, "team.display.manage");
+  return hasWorkspacePermission(auth.workspace, auth.role, "settings.display") && hasWorkspacePermission(auth.workspace, auth.role, "team.display.manage");
 }
 
 export async function GET() {

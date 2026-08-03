@@ -16,18 +16,21 @@ export const PERMISSION_GROUPS = [
     label: "Administration",
     description: "Control workspace configuration and role administration.",
   },
+  {
+    key: "settings_tabs",
+    label: "Settings Tab Visibility",
+    description: "Choose which settings sections this role can open. Profile is always visible.",
+  },
 ];
 
 export const WORKSPACE_PERMISSIONS = [
   { key: "dashboard.view", group: "visibility", label: "Dashboard", description: "Open the dashboard and workspace summaries." },
   { key: "completed.view", group: "visibility", label: "Completed Work", description: "Open completed project and task views." },
-  { key: "settings.view", group: "visibility", label: "Settings", description: "Open settings pages and saved access rules." },
-
   { key: "projects.view", group: "records", section: "Project", label: "View", description: "View project lists, details, activity, and archived projects." },
   { key: "projects.view_others", group: "records", section: "Project", label: "View Others' Projects", description: "View projects the user did not create and is not assigned to." },
-  { key: "projects.create", group: "records", section: "Project", label: "Create", description: "Create general or Zoho projects." },
+  { key: "projects.create", group: "records", section: "Project", label: "Create New Project", description: "Create projects and assign workspace users during project creation." },
   { key: "projects.edit", group: "records", section: "Project", label: "Edit", description: "Edit project details, stages, and completion state." },
-  { key: "projects.assign", group: "records", section: "Project", label: "Assign Users", description: "Assign workspace users to projects in Organization or Team mode." },
+  { key: "projects.assign", group: "records", section: "Project", label: "Change Assigned Users", description: "Change user assignments on existing projects in Organization or Team mode." },
   { key: "projects.archive", group: "records", section: "Project", label: "Archive and Restore", description: "Archive and restore projects." },
   { key: "projects.delete", group: "records", section: "Project", label: "Delete", description: "Permanently delete eligible projects and their tasks." },
 
@@ -44,6 +47,13 @@ export const WORKSPACE_PERMISSIONS = [
   { key: "workspace.manage", group: "workspace", label: "Workspace Settings", description: "Change the workspace name and Personal, Organization, or Team mode." },
   { key: "team.display.manage", group: "workspace", label: "Team and Dashboard Display", description: "Choose standard roles shown separately in Team and roles included in Dashboard project allocation." },
   { key: "roles.manage", group: "workspace", label: "Roles and Permissions", description: "Create roles and change or delete saved permission policies." },
+
+  { key: "settings.workspace", group: "settings_tabs", label: "Workspace", description: "Show the Workspace settings tab. Workspace Settings permission still controls changes." },
+  { key: "settings.project_customization", group: "settings_tabs", label: "Project & Task Setup", description: "Show project and task customization settings." },
+  { key: "settings.appearance", group: "settings_tabs", label: "Appearance", description: "Show workspace appearance settings." },
+  { key: "settings.users", group: "settings_tabs", label: "Users", description: "Show user and access settings. User record permissions still control available actions." },
+  { key: "settings.display", group: "settings_tabs", label: "Team & Dashboard", description: "Show Team and Dashboard display settings." },
+  { key: "settings.roles", group: "settings_tabs", label: "Roles & Permissions", description: "Show saved roles and permission details. Roles and Permissions administration still controls changes." },
 ];
 
 const ALL_PERMISSIONS = WORKSPACE_PERMISSIONS.map((permission) => permission.key);
@@ -52,7 +62,6 @@ const MEMBER_PERMISSIONS = [
   "projects.view",
   "tasks.view",
   "completed.view",
-  "settings.view",
   "projects.create",
   "tasks.create",
   "projects.edit",
@@ -103,7 +112,6 @@ export function expandLegacyRolePermissions(roles = []) {
     if (roleChanged) {
       permissions.add("dashboard.view");
       permissions.add("completed.view");
-      permissions.add("settings.view");
       changed = true;
     }
     if (role.key === "owner" || role.key === "admin") {

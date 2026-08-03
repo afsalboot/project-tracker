@@ -9,6 +9,7 @@ import TaskComment from "@/models/TaskComment";
 import { z } from "zod";
 import { projectAccessFilter, requireProjectRecordAccess } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
+import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
 
 export const runtime = "nodejs";
 const deleteConfirmationSchema = z.object({
@@ -25,7 +26,7 @@ export async function GET(_request, { params }) {
     if (!validId(taskId)) return fail("Task not found.", 404);
     const task = await Task.findOne({ _id: taskId, workspaceId: auth.workspaceId, ...taskAccessFilter(auth) })
       .populate("userId", "name")
-      .populate("projectId", "name clientName zohoProduct projectTypes")
+      .populate("projectId", "name clientName projectPlatform zohoProduct zohoProducts projectTypes")
       .lean();
     if (!task) return fail("Task not found.", 404);
     const accessDenied = await requireProjectRecordAccess(auth, task.projectId?._id || task.projectId);
@@ -51,6 +52,8 @@ export async function PUT(request, { params }) {
     const creatorDenied = requireTaskCreator(auth, task);
     if (creatorDenied) return creatorDenied;
     const input = taskSchema.parse(await request.json());
+    if (input.status !== task.status && hasEnabledChoices(auth.workspace, "taskStatuses") && !activeChoice(auth.workspace, "taskStatuses", input.status)) return fail("Select an enabled task status.", 422);
+    if (input.environment !== task.environment && hasEnabledChoices(auth.workspace, "environments") && !activeChoice(auth.workspace, "environments", input.environment)) return fail("Select an enabled environment.", 422);
     if (
       task.parentTaskId &&
       input.projectId &&
@@ -65,10 +68,11 @@ export async function PUT(request, { params }) {
     }
     const previousProject = String(task.projectId);
     const previousStatus = task.status;
+    const previousDueDate = task.dueDate?.toISOString() || null;
     const nextProject = input.projectId || previousProject;
     Object.assign(task, cleanDates(input, ["dueDate"]), { projectId: nextProject });
     task.completedDate =
-      input.status === "Completed" ? task.completedDate || new Date() : null;
+      input.status === completedTaskStatus(auth.workspace) ? task.completedDate || new Date() : null;
     await task.save();
     const recalculations = [recalculateProgress(nextProject, auth.workspaceId)];
     if (previousProject !== nextProject) {
@@ -99,6 +103,18 @@ export async function PUT(request, { params }) {
         action: "Task status changed",
         previousValue: previousStatus,
         newValue: input.status,
+      });
+    }
+    const nextDueDate = task.dueDate?.toISOString() || null;
+    if (previousDueDate !== nextDueDate) {
+      await Activity.create({
+        userId: auth.userId,
+        workspaceId: auth.workspaceId,
+        projectId: nextProject,
+        taskId,
+        action: "Task due date changed",
+        previousValue: previousDueDate,
+        newValue: nextDueDate,
       });
     }
     return ok({ task }, "Task updated successfully.");

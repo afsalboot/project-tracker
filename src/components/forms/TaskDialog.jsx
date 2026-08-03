@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { X } from "lucide-react";
 import { toast } from "sonner";
-import { ENVIRONMENTS, PRIORITIES } from "@/constants/project";
-import { DEPLOYMENT_STATUSES, TASK_STATUSES } from "@/constants/task";
+import { PRIORITIES } from "@/constants/project";
+import { DEPLOYMENT_STATUSES } from "@/constants/task";
 import { taskSchema } from "@/lib/validations";
 import Dropdown from "@/components/ui/Dropdown";
+import useProjectCustomization from "@/components/settings/useProjectCustomization";
 
 const defaults = {
   title: "", description: "", status: "To Do", priority: "Medium", dueDate: "",
@@ -19,6 +20,7 @@ const defaults = {
 };
 
 export default function TaskDialog({ open, onClose, projectId, task, projects = [], onSaved }) {
+  const { customization, loading: customizationLoading } = useProjectCustomization();
   const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(taskSchema),
     defaultValues: defaults,
@@ -28,17 +30,25 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
   const environment = useWatch({ control, name: "environment" });
   const deploymentStatus = useWatch({ control, name: "deploymentStatus" });
   const fieldApiNames = useWatch({ control, name: "fieldApiNames" });
+  const optionLabels = useCallback((key) => customization[key].filter((item) => item.enabled).map((item) => item.label), [customization]);
+  const blockedStatus = customization.taskStatuses.find((item) => item.id === "blocked")?.label || "Blocked";
 
   useEffect(() => {
     if (!open) return;
+    const enabledStatuses = optionLabels("taskStatuses");
+    const enabledEnvironments = optionLabels("environments");
+    const initialStatus = enabledStatuses.length ? (task?.status && enabledStatuses.includes(task.status) ? task.status : enabledStatuses[0]) : task?.status || defaults.status;
+    const initialEnvironment = enabledEnvironments.length ? (task?.environment && enabledEnvironments.includes(task.environment) ? task.environment : enabledEnvironments[0]) : task?.environment || defaults.environment;
     reset({
       ...defaults,
       ...task,
+      status: initialStatus,
+      environment: initialEnvironment,
       projectId: task?.projectId?._id || task?.projectId || projectId || "",
       dueDate: task?.dueDate?.slice(0, 10) || "",
       fieldApiNames: task?.fieldApiNames || [],
     });
-  }, [open, projectId, reset, task]);
+  }, [customization.environments, customization.taskStatuses, customizationLoading, open, optionLabels, projectId, reset, task]);
 
   useEffect(() => {
     if (!open) return;
@@ -104,12 +114,12 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
                   />
                 </Field>
               )}
-              <div className="md:col-span-2">
+              {optionLabels("taskStatuses").length > 0 && <div className="md:col-span-2">
                 <Field label="Status" required>
                   <input type="hidden" {...register("status")} />
-                  <PillGroup values={TASK_STATUSES} value={status} onChange={(value) => setValue("status", value, { shouldDirty: true, shouldValidate: true })} />
+                  <PillGroup values={optionLabels("taskStatuses")} value={status} onChange={(value) => setValue("status", value, { shouldDirty: true, shouldValidate: true })} />
                 </Field>
-              </div>
+              </div>}
               <div className="md:col-span-2">
                 <Field label="Priority" required>
                   <input type="hidden" {...register("priority")} />
@@ -119,14 +129,14 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
               <Field label="Due date" error={errors.dueDate?.message}>
                 <input type="date" className="field" {...register("dueDate")} />
               </Field>
-              <Field label="Environment">
+              {optionLabels("environments").length > 0 && <Field label="Environment">
                 <input type="hidden" {...register("environment")} />
-                <PillGroup values={ENVIRONMENTS} value={environment} onChange={(value) => setValue("environment", value, { shouldDirty: true, shouldValidate: true })} />
-              </Field>
+                <PillGroup values={optionLabels("environments")} value={environment} onChange={(value) => setValue("environment", value, { shouldDirty: true, shouldValidate: true })} />
+              </Field>}
               <Field label="Estimated minutes"><input type="number" min="0" className="field" {...register("estimatedMinutes")} /></Field>
               <Field label="Actual minutes"><input type="number" min="0" className="field" {...register("actualMinutes")} /></Field>
               <div className="md:col-span-2"><Field label="Description"><textarea className="field" {...register("description")} /></Field></div>
-              {status === "Blocked" && <div className="rounded-xl border border-red-200 bg-red-50 p-4 md:col-span-2"><Field label="Blocker reason" required><textarea className="field !border-red-200" {...register("blockerReason")} /></Field></div>}
+              {optionLabels("taskStatuses").length > 0 && status === blockedStatus && <div className="rounded-xl border border-red-200 bg-red-50 p-4 md:col-span-2"><Field label="Blocker reason" required><textarea className="field !border-red-200" {...register("blockerReason")} /></Field></div>}
             </div>
 
             <details className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">

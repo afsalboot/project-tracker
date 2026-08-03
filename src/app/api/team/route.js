@@ -9,6 +9,7 @@ import User from "@/models/User";
 import Workspace from "@/models/Workspace";
 import { projectAccessFilter } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
+import { completedTaskStatus } from "@/lib/customization";
 
 export const runtime = "nodejs";
 
@@ -25,13 +26,15 @@ export async function GET() {
     if (!hasWorkspacePermission(auth.workspace, auth.role, "members.view")) return fail("You do not have permission to view the team.", 403);
 
     const workspaceId = new mongoose.Types.ObjectId(auth.workspaceId);
-    const [members, projects] = await Promise.all([
+    const completedStatus = completedTaskStatus(auth.workspace);
+    const [members, allProjects] = await Promise.all([
       User.find({ workspaceId }).select("name email role createdAt").sort({ name: 1 }).lean(),
-      Project.find({ workspaceId, isArchived: false, ...projectAccessFilter(auth) })
-        .select("name stage progress priority userId assignedUserIds dueDate updatedAt")
+      Project.find({ workspaceId, ...projectAccessFilter(auth) })
+        .select("name stage progress priority userId assignedUserIds dueDate updatedAt isArchived")
         .sort({ updatedAt: -1 })
         .lean(),
     ]);
+    const projects = allProjects.filter((project) => !project.isArchived);
     const taskStats = await Task.aggregate([
         { $match: { workspaceId } },
         { $match: { projectId: { $in: projects.map((project) => project._id) }, ...taskAccessFilter(auth) } },
@@ -39,9 +42,9 @@ export async function GET() {
           $group: {
             _id: "$projectId",
             tasks: { $sum: { $cond: [{ $eq: ["$parentTaskId", null] }, 1, 0] } },
-            completedTasks: { $sum: { $cond: [{ $and: [{ $eq: ["$parentTaskId", null] }, { $eq: ["$status", "Completed"] }] }, 1, 0] } },
+            completedTasks: { $sum: { $cond: [{ $and: [{ $eq: ["$parentTaskId", null] }, { $eq: ["$status", completedStatus] }] }, 1, 0] } },
             subtasks: { $sum: { $cond: [{ $ne: ["$parentTaskId", null] }, 1, 0] } },
-            completedSubtasks: { $sum: { $cond: [{ $and: [{ $ne: ["$parentTaskId", null] }, { $eq: ["$status", "Completed"] }] }, 1, 0] } },
+            completedSubtasks: { $sum: { $cond: [{ $and: [{ $ne: ["$parentTaskId", null] }, { $eq: ["$status", completedStatus] }] }, 1, 0] } },
           },
         },
       ]);
@@ -53,6 +56,10 @@ export async function GET() {
     }));
     const people = members.map((member) => ({
       ...member,
+      totalProjects: allProjects.filter((project) =>
+        String(project.userId) === String(member._id) ||
+        project.assignedUserIds?.some((id) => String(id) === String(member._id)),
+      ).length,
       projects: projectRecords.filter((project) =>
         String(project.userId) === String(member._id) ||
         project.assignedUserIds?.some((id) => String(id) === String(member._id)),
@@ -77,6 +84,7 @@ export async function PATCH(request) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    if (auth.workspace.type === "personal") return fail("Team settings are unavailable in Personal workspaces.", 404);
     if (!hasWorkspacePermission(auth.workspace, auth.role, "team.display.manage")) return fail("You do not have permission to change team display settings.", 403);
     const input = preferencesSchema.parse(await request.json());
     const roleKeys = new Set((auth.workspace.roles || []).map((role) => role.key));

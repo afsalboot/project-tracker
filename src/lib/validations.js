@@ -1,11 +1,8 @@
 import { z } from "zod";
 import {
-  ENVIRONMENTS,
   PRIORITIES,
-  PROJECT_STAGES,
-  ZOHO_PRODUCTS,
 } from "@/constants/project";
-import { DEPLOYMENT_STATUSES, TASK_STATUSES } from "@/constants/task";
+import { DEPLOYMENT_STATUSES } from "@/constants/task";
 
 const optionalText = (max = 10000) =>
   z.string().trim().max(max).optional().or(z.literal(""));
@@ -16,11 +13,32 @@ const optionalDate = z
   .refine((v) => !v || !Number.isNaN(Date.parse(v)), "Enter a valid date");
 
 export const strongPasswordSchema = z.string()
-  .min(10, "Use at least 10 characters")
+  .min(8, "Use at least 8 characters")
   .max(128)
   .regex(/[a-z]/, "Include a lowercase letter")
   .regex(/[A-Z]/, "Include an uppercase letter")
   .regex(/[0-9]/, "Include a number");
+
+export const usernameSchema = z.string()
+  .trim()
+  .toLowerCase()
+  .min(3, "Use at least 3 characters")
+  .max(30, "Use no more than 30 characters")
+  .regex(/^[a-z0-9._-]+$/, "Use lowercase letters, numbers, dots, hyphens, or underscores");
+
+export const profileSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  username: usernameSchema.or(z.literal("")),
+  email: z.string().trim().toLowerCase().email(),
+});
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password").max(128),
+  newPassword: strongPasswordSchema,
+}).refine((value) => value.currentPassword !== value.newPassword, {
+  path: ["newPassword"],
+  message: "Choose a password different from your current password",
+});
 
 export const registerSchema = z.object({
   name: z.string().trim().min(2).max(80),
@@ -40,19 +58,21 @@ export const projectSchema = z
     name: z.string().trim().min(2).max(160),
     clientName: optionalText(120),
     description: optionalText(),
-    zohoProduct: z.enum(ZOHO_PRODUCTS),
+    projectPlatform: z.string().trim().min(1).max(80),
+    zohoProduct: optionalText(80),
+    zohoProducts: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
     moduleName: optionalText(120),
     projectTypes: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
     assignedUserIds: z.array(z.string()).max(100).default([]),
-    environment: z.enum(ENVIRONMENTS).default("Not Applicable"),
-    stage: z.enum(PROJECT_STAGES).default("Not Started"),
+    environment: z.string().trim().min(1).max(80),
+    stage: z.string().trim().min(1).max(80),
     priority: z.enum(PRIORITIES).default("Medium"),
     startDate: optionalDate,
     dueDate: optionalDate,
     zohoUrl: z.union([z.url(), z.literal("")]).optional(),
     repositoryUrl: z.union([z.url(), z.literal("")]).optional(),
     notes: optionalText(20000),
-    template: z.enum(["", "workflow", "webhook", "blueprint"]).optional(),
+    template: z.string().trim().max(80).optional(),
   })
   .refine(
     (data) =>
@@ -66,7 +86,7 @@ export const taskSchema = z.object({
   title: z.string().trim().min(2).max(240),
   description: optionalText(),
   projectId: z.string().optional(),
-  status: z.enum(TASK_STATUSES).default("To Do"),
+  status: z.string().trim().min(1).max(80),
   priority: z.enum(PRIORITIES).default("Medium"),
   dueDate: optionalDate,
   estimatedMinutes: z.coerce.number().int().min(0).max(100000).default(0),
@@ -77,7 +97,7 @@ export const taskSchema = z.object({
   fieldApiNames: z.array(z.string().trim().min(1).max(240)).default([]),
   webhookEvent: optionalText(240),
   connectionName: optionalText(240),
-  environment: z.enum(ENVIRONMENTS).default("Not Applicable"),
+  environment: z.string().trim().min(1).max(80),
   technicalNotes: optionalText(30000),
   blockerReason: optionalText(10000),
   testResult: optionalText(20000),
@@ -89,7 +109,7 @@ export const taskSchema = z.object({
 export const subtaskSchema = z.object({
   title: z.string().trim().min(2).max(240),
   description: optionalText(),
-  status: z.enum(TASK_STATUSES).default("To Do"),
+  status: z.string().trim().min(1).max(80),
   priority: z.enum(PRIORITIES).default("Medium"),
   dueDate: optionalDate,
 });
@@ -98,5 +118,5 @@ export const taskCommentSchema = z.object({
   body: z.string().trim().min(1, "Enter a comment").max(5000),
 });
 
-export const statusSchema = z.object({ status: z.enum(TASK_STATUSES) });
-export const stageSchema = z.object({ stage: z.enum(PROJECT_STAGES) });
+export const statusSchema = z.object({ status: z.string().trim().min(1).max(80) });
+export const stageSchema = z.object({ stage: z.string().trim().min(1).max(80) });

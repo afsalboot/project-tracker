@@ -4,6 +4,7 @@ import { taskCommentSchema } from "@/lib/validations";
 import TaskComment from "@/models/TaskComment";
 import Task from "@/models/Task";
 import { requireProjectRecordAccess } from "@/lib/project-access";
+import { resolveMentionedUserIds } from "@/lib/mentions";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,7 @@ export async function PUT(request, { params }) {
     }
     const input = taskCommentSchema.parse(await request.json());
     comment.body = input.body;
+    comment.mentionedUserIds = await resolveMentionedUserIds(auth.workspaceId, input.body, auth.userId);
     comment.editedAt = new Date();
     await comment.save();
     await comment.populate("userId", "name");

@@ -1,10 +1,5 @@
 import mongoose from "mongoose";
-import {
-  ENVIRONMENTS,
-  PRIORITIES,
-  PROJECT_STAGES,
-  ZOHO_PRODUCTS,
-} from "@/constants/project";
+import { PRIORITIES } from "@/constants/project";
 
 const projectSchema = new mongoose.Schema(
   {
@@ -15,11 +10,13 @@ const projectSchema = new mongoose.Schema(
     slug: { type: String, required: true, trim: true },
     clientName: { type: String, trim: true, default: "" },
     description: { type: String, default: "" },
-    zohoProduct: { type: String, enum: ZOHO_PRODUCTS, required: true },
+    projectPlatform: { type: String, trim: true, default: "General Project" },
+    zohoProduct: { type: String, trim: true, default: "" },
+    zohoProducts: [{ type: String, trim: true }],
     moduleName: { type: String, default: "" },
     projectTypes: [{ type: String, trim: true }],
-    environment: { type: String, enum: ENVIRONMENTS, default: "Not Applicable" },
-    stage: { type: String, enum: PROJECT_STAGES, default: "Not Started" },
+    environment: { type: String, trim: true, default: "Not Applicable" },
+    stage: { type: String, trim: true, default: "Not Started" },
     priority: { type: String, enum: PRIORITIES, default: "Medium" },
     startDate: Date,
     dueDate: Date,

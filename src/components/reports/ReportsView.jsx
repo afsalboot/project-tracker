@@ -27,8 +27,10 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { EmptyState, PageIntro } from "@/components/ui";
+import useProjectCustomization from "@/components/settings/useProjectCustomization";
 
 export default function ReportsView({ embeddedData = null }) {
+  const { customization } = useProjectCustomization();
   const [data, setData] = useState(embeddedData);
   useEffect(() => {
     if (embeddedData) return;
@@ -36,13 +38,17 @@ export default function ReportsView({ embeddedData = null }) {
   }, [embeddedData]);
   if (!data) return <div className="space-y-5"><div className="skeleton h-20" /><div className="skeleton h-96" /></div>;
   const report = data.reports;
+  const showProjectStage = customization.projectStages.some((item) => item.enabled);
+  const showTaskStatus = customization.taskStatuses.some((item) => item.enabled);
+  const showProjectPlatform = customization.projectPlatforms.some((item) => item.enabled);
+  const showProjectType = customization.projectTypes.some((item) => item.enabled);
   const summaries = [
-    ["Projects completed this month", report.projectsCompletedThisMonth, FolderCheck],
-    ["Tasks completed this week", data.completedThisWeek, CheckCircle2],
+    ...(showProjectStage ? [["Projects completed this month", report.projectsCompletedThisMonth, FolderCheck]] : []),
+    ...(showTaskStatus ? [["Tasks completed this week", data.completedThisWeek, CheckCircle2]] : []),
     ["Overdue tasks", data.overdueTasks, AlertTriangle],
-    ["Blocked tasks", data.blockedTasks, Ban],
+    ...(showTaskStatus ? [["Blocked tasks", data.blockedTasks, Ban]] : []),
   ];
-  const hasData = [report.taskStatus, report.projectStage, report.projectProduct, report.projectType].some((items) => items.length);
+  const hasData = [showTaskStatus && report.taskStatus, showProjectStage && report.projectStage, showProjectPlatform && report.projectProduct, showProjectType && report.projectType].some((items) => items && items.length);
   return (
     <>
       {!embeddedData && <PageIntro eyebrow="Insights" title="Delivery reports" description="Live summaries calculated from your project and task records." />}
@@ -56,10 +62,10 @@ export default function ReportsView({ embeddedData = null }) {
           <p className="mt-1 text-xs text-neutral-500">A visual breakdown of current tasks and projects.</p>
         </div>
         <div className="grid gap-5 lg:grid-cols-2">
-          <Breakdown title="Task status" description="Current task workflow distribution." items={report.taskStatus} icon={ListChecks} palette={["#176b4d", "#0ea5e9", "#8b5cf6", "#e11d48", "#f59e0b"]} />
-          <Breakdown title="Project stage" description="Projects across the delivery lifecycle." items={report.projectStage} icon={Workflow} palette={["#0f766e", "#2563eb", "#7c3aed", "#db2777", "#ea580c"]} />
-          <Breakdown title="Project platform" description="Technology and Zoho product distribution." items={report.projectProduct} icon={Boxes} palette={["#0284c7", "#4f46e5", "#7c3aed", "#0d9488", "#65a30d"]} />
-          <Breakdown title="Project type" description="Functional project categories in this workspace." items={report.projectType} icon={Tags} palette={["#9333ea", "#db2777", "#ea580c", "#ca8a04", "#059669"]} />
+          {showTaskStatus && <Breakdown title="Task status" description="Current task workflow distribution." items={report.taskStatus} icon={ListChecks} palette={["var(--accent)", "#0ea5e9", "#8b5cf6", "#e11d48", "#f59e0b"]} />}
+          {showProjectStage && <Breakdown title="Project stage" description="Projects across the delivery lifecycle." items={report.projectStage} icon={Workflow} palette={["#0f766e", "#2563eb", "#7c3aed", "#db2777", "#ea580c"]} />}
+          {showProjectPlatform && <Breakdown title="Project platform" description="Technology and Zoho product distribution." items={report.projectProduct} icon={Boxes} palette={["#0284c7", "#4f46e5", "#7c3aed", "#0d9488", "#65a30d"]} />}
+          {showProjectType && <Breakdown title="Project type" description="Functional project categories in this workspace." items={report.projectType} icon={Tags} palette={["#9333ea", "#db2777", "#ea580c", "#ca8a04", "#059669"]} />}
           <section className="card p-4 sm:p-5 lg:col-span-2"><h3 className="font-semibold">Estimated versus actual time</h3><div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4"><Time label="Estimated" minutes={report.timeTotals.estimated} /><Time label="Actual" minutes={report.timeTotals.actual} /></div></section>
         </div>
       </section>}
@@ -67,7 +73,7 @@ export default function ReportsView({ embeddedData = null }) {
   );
 }
 
-const CHART_COLORS = ["#176b4d", "#0ea5e9", "#8b5cf6", "#f59e0b", "#e11d48", "#14b8a6"];
+const CHART_COLORS = ["var(--accent)", "#0ea5e9", "#8b5cf6", "#f59e0b", "#e11d48", "#14b8a6"];
 const tooltipStyle = {
   border: "1px solid #e5e7eb",
   borderRadius: 12,
@@ -91,7 +97,7 @@ function TeamAnalytics({ data, workspace }) {
   return (
     <section className="mt-6">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span className="grid size-10 place-items-center rounded-xl bg-violet-50 text-violet-700"><UsersRound size={19} /></span>
+        <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UsersRound size={19} /></span>
         <div>
           <h3 className="font-semibold">Team analytics</h3>
           <p className="text-xs text-neutral-500">Project and user insights for Organization and Team workspaces.</p>
@@ -112,8 +118,8 @@ function TeamAnalytics({ data, workspace }) {
                 <YAxis type="category" dataKey="name" width={120} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#525252" }} tickFormatter={shortLabel} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12, paddingTop: 10 }} />
-                <Bar dataKey="completedTasks" name="Completed" stackId="tasks" fill="#176b4d" radius={[4, 0, 0, 4]} />
-                <Bar dataKey="remainingTasks" name="Remaining" stackId="tasks" fill="#d1fae5" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="completedTasks" name="Completed" stackId="tasks" fill="var(--accent)" radius={[4, 0, 0, 4]} />
+                <Bar dataKey="remainingTasks" name="Remaining" stackId="tasks" fill="var(--brand-100)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : <ChartEmpty message="Create projects and tasks to populate project analytics." />}
@@ -153,7 +159,7 @@ function TeamAnalytics({ data, workspace }) {
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="projects" name="Projects" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="completedTasks" name="Completed tasks" stackId="tasks" fill="#176b4d" />
+                <Bar dataKey="completedTasks" name="Completed tasks" stackId="tasks" fill="var(--accent)" />
                 <Bar dataKey="openTasks" name="Open tasks" stackId="tasks" fill="#bae6fd" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -246,7 +252,7 @@ function Breakdown({ title, description, items, icon: Icon, palette }) {
 
 function breakdownColor(label, index, palette) {
   const semanticColors = {
-    Completed: "#176b4d",
+    Completed: "var(--accent)",
     Blocked: "#e11d48",
     Testing: "#8b5cf6",
     "In Progress": "#0ea5e9",

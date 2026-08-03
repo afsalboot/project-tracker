@@ -16,6 +16,8 @@ export async function PATCH(request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.users")) return fail("You do not have permission to view user settings.", 403);
+    if (auth.workspace.type === "personal") return fail("Workspace members are unavailable in Personal workspaces.", 404);
     if (!hasWorkspacePermission(auth.workspace, auth.role, "members.manage")) return fail("Permission denied.", 403);
     const { memberId } = await params;
     if (!validId(memberId)) return fail("Member not found.", 404);
@@ -37,6 +39,8 @@ export async function DELETE(_request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.users")) return fail("You do not have permission to view user settings.", 403);
+    if (auth.workspace.type === "personal") return fail("Workspace members are unavailable in Personal workspaces.", 404);
     if (!hasWorkspacePermission(auth.workspace, auth.role, "members.manage")) return fail("Permission denied.", 403);
     const { memberId } = await params;
     if (!validId(memberId) || memberId === auth.userId) {

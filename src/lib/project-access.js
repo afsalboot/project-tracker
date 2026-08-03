@@ -1,6 +1,7 @@
 import { fail } from "@/lib/api-response";
 import Project from "@/models/Project";
 import { hasWorkspacePermission } from "@/lib/workspace";
+import mongoose from "mongoose";
 
 export function canAccessAllProjects(auth) {
   return hasWorkspacePermission(auth.workspace, auth.role, "projects.view_others");
@@ -8,12 +9,17 @@ export function canAccessAllProjects(auth) {
 
 export function projectAccessFilter(auth) {
   if (canAccessAllProjects(auth)) return {};
+  // Mongoose casts find queries, but project lists use an aggregation pipeline.
+  // Aggregations do not cast session string IDs to ObjectIds automatically.
+  const userId = mongoose.Types.ObjectId.isValid(auth.userId)
+    ? new mongoose.Types.ObjectId(auth.userId)
+    : auth.userId;
   return {
     $and: [
       {
         $or: [
-          { userId: auth.userId },
-          { assignedUserIds: auth.userId },
+          { userId },
+          { assignedUserIds: userId },
         ],
       },
     ],

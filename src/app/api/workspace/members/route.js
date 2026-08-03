@@ -23,6 +23,10 @@ export async function GET() {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.users")) return fail("You do not have permission to view user settings.", 403);
+    if (auth.workspace.type === "personal") {
+      return fail("Workspace members are unavailable in Personal workspaces.", 404);
+    }
     if (!hasWorkspacePermission(auth.workspace, auth.role, "members.view")) {
       return fail("You do not have permission to view workspace users.", 403);
     }
@@ -40,6 +44,7 @@ export async function POST(request) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.users")) return fail("You do not have permission to view user settings.", 403);
     if (!hasWorkspacePermission(auth.workspace, auth.role, "members.create")) {
       return fail("You do not have permission to add workspace users.", 403);
     }

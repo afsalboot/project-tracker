@@ -1,11 +1,12 @@
 import { endOfDay, endOfWeek, startOfDay } from "date-fns";
 import { handleApiError, ok } from "@/lib/api-response";
-import { pageOptions, requireApiUser, requireWorkspacePermission } from "@/lib/server";
+import { pageOptions, requireApiUser, requireWorkspacePermission, validId } from "@/lib/server";
 import { escapeRegex } from "@/lib/utils";
 import Task from "@/models/Task";
 import Project from "@/models/Project";
 import { projectAccessFilter } from "@/lib/project-access";
-import { taskAccessFilter } from "@/lib/task-access";
+import { canAccessOthersTasks, taskAccessFilter } from "@/lib/task-access";
+import { completedTaskStatus } from "@/lib/customization";
 
 export const runtime = "nodejs";
 
@@ -19,8 +20,9 @@ export async function GET(request) {
     if (auth.response) return auth.response;
     const params = new URL(request.url).searchParams;
     const statuses = listParam(params, "status");
+    const completedStatus = completedTaskStatus(auth.workspace);
     const visibilityPermission =
-      statuses.length === 1 && statuses[0] === "Completed" ? "completed.view" : "tasks.view";
+      statuses.length === 1 && statuses[0] === completedStatus ? "completed.view" : "tasks.view";
     const denied = requireWorkspacePermission(auth, visibilityPermission);
     if (denied) return denied;
     const { page, limit, skip } = pageOptions(params);
@@ -43,13 +45,15 @@ export async function GET(request) {
       const values = key === "status" ? statuses : listParam(params, key);
       if (values.length) query[key] = { $in: values };
     }
+    const userIds = listParam(params, "userId").filter(validId);
+    if (userIds.length && canAccessOthersTasks(auth)) query.userId = { $in: userIds };
     const now = new Date();
     const due = params.get("due");
     if (due === "today") query.dueDate = { $gte: startOfDay(now), $lte: endOfDay(now) };
     if (due === "week") query.dueDate = { $gte: startOfDay(now), $lte: endOfWeek(now) };
     if (due === "overdue") {
       query.dueDate = { $lt: startOfDay(now) };
-      query.status = { $ne: "Completed" };
+      query.status = { $ne: completedStatus };
     }
     if (due === "none") query.dueDate = null;
     const sorts = {
@@ -63,7 +67,7 @@ export async function GET(request) {
         .populate("userId", "name")
         .populate({
           path: "projectId",
-          select: "name clientName zohoProduct projectTypes stage assignedUserIds",
+          select: "name clientName projectPlatform zohoProduct zohoProducts projectTypes stage assignedUserIds",
           populate: { path: "assignedUserIds", select: "name email" },
         })
         .sort(sorts[params.get("sort")] || sorts.due)
@@ -85,7 +89,7 @@ export async function GET(request) {
             _id: "$parentTaskId",
             total: { $sum: 1 },
             completed: {
-              $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] },
+              $sum: { $cond: [{ $eq: ["$status", completedStatus] }, 1, 0] },
             },
           },
         },

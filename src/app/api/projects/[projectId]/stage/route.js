@@ -4,6 +4,7 @@ import { stageSchema } from "@/lib/validations";
 import Activity from "@/models/Activity";
 import Project from "@/models/Project";
 import { projectAccessFilter } from "@/lib/project-access";
+import { activeChoice, completedProjectStage } from "@/lib/customization";
 
 export const runtime = "nodejs";
 
@@ -18,9 +19,10 @@ export async function PATCH(request, { params }) {
     const { stage } = stageSchema.parse(await request.json());
     const project = await Project.findOne({ _id: projectId, workspaceId: auth.workspaceId, ...projectAccessFilter(auth) });
     if (!project) return fail("Project not found.", 404);
+    if (stage !== project.stage && !activeChoice(auth.workspace, "projectStages", stage)) return fail("Select an enabled project stage.", 422);
     const previous = project.stage;
     project.stage = stage;
-    if (stage !== "Completed") project.completedDate = null;
+    if (stage !== completedProjectStage(auth.workspace)) project.completedDate = null;
     await project.save();
     await Activity.create({
       userId: auth.userId,

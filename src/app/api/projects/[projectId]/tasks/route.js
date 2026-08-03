@@ -7,6 +7,7 @@ import Project from "@/models/Project";
 import Task from "@/models/Task";
 import { projectAccessFilter } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
+import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
 
 export const runtime = "nodejs";
 
@@ -21,12 +22,15 @@ export async function POST(request, { params }) {
     const project = await Project.findOne({ _id: projectId, workspaceId: auth.workspaceId, ...projectAccessFilter(auth) });
     if (!project) return fail("Project not found.", 404);
     const input = taskSchema.parse(await request.json());
+    if (hasEnabledChoices(auth.workspace, "taskStatuses") && !activeChoice(auth.workspace, "taskStatuses", input.status)) return fail("Select an enabled task status.", 422);
+    if (hasEnabledChoices(auth.workspace, "environments") && !activeChoice(auth.workspace, "environments", input.environment)) return fail("Select an enabled environment.", 422);
+    const completedStatus = completedTaskStatus(auth.workspace);
     const task = await Task.create({
       ...cleanDates(input, ["dueDate"]),
       userId: auth.userId,
       workspaceId: auth.workspaceId,
       projectId,
-      completedDate: input.status === "Completed" ? new Date() : null,
+      completedDate: input.status === completedStatus ? new Date() : null,
       sortOrder: await Task.countDocuments({ projectId, workspaceId: auth.workspaceId, parentTaskId: null }),
     });
     await Promise.all([

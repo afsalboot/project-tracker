@@ -27,7 +27,8 @@ export async function GET() {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.view")) {
+    if (auth.workspace.type === "personal") return fail("Saved roles are unavailable in Personal workspaces.", 404);
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.roles")) {
       return fail("You do not have permission to view saved roles.", 403);
     }
     const response = ok({
@@ -53,7 +54,8 @@ export async function POST(request) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
-    if (!hasWorkspacePermission(auth.workspace, auth.role, "roles.manage")) {
+    if (auth.workspace.type === "personal") return fail("Saved roles are unavailable in Personal workspaces.", 404);
+    if (!hasWorkspacePermission(auth.workspace, auth.role, "settings.roles") || !hasWorkspacePermission(auth.workspace, auth.role, "roles.manage")) {
       return fail("You do not have permission to create roles.", 403);
     }
     const input = roleSchema.parse(await request.json());

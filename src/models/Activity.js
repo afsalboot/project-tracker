@@ -6,6 +6,7 @@ const activitySchema = new mongoose.Schema(
     workspaceId: { type: mongoose.Schema.Types.ObjectId, ref: "Workspace", required: true, index: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true, index: true },
     taskId: { type: mongoose.Schema.Types.ObjectId, ref: "Task" },
+    recipientUserIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     action: { type: String, required: true },
     previousValue: mongoose.Schema.Types.Mixed,
     newValue: mongoose.Schema.Types.Mixed,
@@ -15,6 +16,7 @@ const activitySchema = new mongoose.Schema(
 );
 
 activitySchema.index({ userId: 1, projectId: 1, createdAt: -1 });
+activitySchema.index({ workspaceId: 1, recipientUserIds: 1, createdAt: -1 });
 
 if (process.env.NODE_ENV !== "production" && mongoose.models.Activity) {
   mongoose.deleteModel("Activity");
