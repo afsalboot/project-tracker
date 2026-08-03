@@ -71,7 +71,7 @@ export default function TeamView() {
 
       {standardMembers.length > 0 && (
         <section className="mb-5">
-          <div className="mb-3 flex items-center gap-2"><ShieldCheck size={18} className="text-emerald-700" /><h2 className="font-semibold">Standard roles</h2></div>
+          <div className="mb-3 flex items-center gap-2"><ShieldCheck size={18} className="text-emerald-700" /><h2 className="font-semibold">Workspace leadership</h2></div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {standardMembers.map((member) => <HighlightCard member={member} roles={data.roles} key={member._id} />)}
           </div>
@@ -80,7 +80,7 @@ export default function TeamView() {
 
       <section className="card overflow-visible">
         <div className="flex flex-col gap-4 border-b border-neutral-100 p-4 lg:flex-row lg:items-center lg:justify-between lg:p-5">
-          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UsersRound size={19} /></span><div><h2 className="font-semibold">Workspace members</h2><p className="text-xs text-neutral-500">{filtered.length} non-standard members</p></div></div>
+          <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UsersRound size={19} /></span><div><h2 className="font-semibold">Team members</h2><p className="text-xs text-neutral-500">{filtered.length} Team members</p></div></div>
           <div className="grid gap-2 sm:grid-cols-3 lg:w-[760px]">
             <label className="relative sm:col-span-1"><Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" /><input aria-label="Search members" className="field search-field" placeholder="Search members…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
             <Dropdown multiple value={role} onChange={setRole} placeholder="All roles" options={data.roles.filter((item) => !data.highlightedRoleKeys.includes(item.key)).map((item) => [item.key, item.name])} />
