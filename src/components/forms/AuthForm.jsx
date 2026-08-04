@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LockKeyhole, PanelsTopLeft } from "lucide-react";
@@ -10,7 +9,6 @@ import { loginSchema, registerSchema } from "@/lib/validations";
 import Dropdown from "@/components/ui/Dropdown";
 
 export default function AuthForm() {
-  const router = useRouter();
   const [setup, setSetup] = useState(false);
   const schema = setup ? registerSchema : loginSchema;
   const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
@@ -30,8 +28,7 @@ export default function AuthForm() {
       return;
     }
     toast.success(result.message);
-    router.replace("/dashboard");
-    router.refresh();
+    window.location.replace("/dashboard");
   }
 
   return (
