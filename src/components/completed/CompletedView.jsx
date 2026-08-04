@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { endOfDay, isWithinInterval, startOfDay, startOfMonth, startOfWeek } from "date-fns";
-import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, DateText, EmptyState, FilterPanel, PageIntro } from "@/components/ui";
 import Dropdown from "@/components/ui/Dropdown";
+import SearchField from "@/components/ui/SearchField";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
 import { projectPlatformName, projectZohoPlatforms } from "@/lib/customization";
 
@@ -69,7 +69,7 @@ export default function CompletedView() {
         onClear={() => setFilters({ period: [], projectPlatform: [], zohoProduct: [], projectType: [], client: [], environment: [], search: "" })}
       >
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-          <label className="relative sm:col-span-2 xl:col-span-2"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={17} /><input className="field search-field" aria-label="Search completed work" placeholder="Search completed work…" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} /></label>
+          <SearchField className="sm:col-span-2 xl:col-span-2" ariaLabel="Search completed work" placeholder="Search completed work…" value={filters.search} onChange={(search) => setFilters({ ...filters, search })} />
           <Select label="Any completion date" value={filters.period} change={(period) => setFilters({ ...filters, period })} items={[["today","Completed today"],["week","Completed this week"],["month","Completed this month"]]} />
           {visibility.projectPlatform && <Select label="All project platforms" value={filters.projectPlatform} change={(projectPlatform) => setFilters({ ...filters, projectPlatform })} items={customization.projectPlatforms.filter((item) => item.enabled).map((item) => [item.label,item.label])} />}
           {visibility.projectPlatform && visibility.zohoProduct && <Select label="All Zoho platforms" value={filters.zohoProduct} change={(zohoProduct) => setFilters({ ...filters, zohoProduct })} items={customization.zohoPlatforms.filter((item) => item.enabled).map((item) => [item.label,item.label])} />}

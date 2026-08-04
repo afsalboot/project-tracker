@@ -9,7 +9,6 @@ import {
   FolderKanban,
   LayoutDashboard,
   MessageSquareText,
-  Search,
   ShieldCheck,
   Trash2,
   UserRoundCheck,
@@ -20,6 +19,7 @@ import { toast } from "sonner";
 import FeedbackAdmin from "@/components/admin/FeedbackAdmin";
 import AdminActionsMenu from "@/components/admin/AdminActionsMenu";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import SearchField from "@/components/ui/SearchField";
 import Dropdown from "@/components/ui/Dropdown";
 import { EmptyState, PageIntro } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -349,7 +349,7 @@ function AdminFilters({ search, setSearch, status, setStatus, placeholder, child
   return (
     <section className="card mb-5 overflow-visible p-4">
       <div className="flex flex-col gap-3 sm:flex-row">
-        <label className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={17} /><input className="field search-field" aria-label="Search" placeholder={placeholder} value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+        <SearchField className="flex-1" ariaLabel="Search" placeholder={placeholder} value={search} onChange={setSearch} />
         <Dropdown className="sm:w-44" ariaLabel="Access status" value={status} onChange={setStatus} options={[["", "All statuses"], ["active", "Active"], ["suspended", "Suspended"]]} />
         {children}
       </div>

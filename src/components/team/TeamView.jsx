@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MoreHorizontal, Search, ShieldCheck, UsersRound } from "lucide-react";
+import { MoreHorizontal, ShieldCheck, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, EmptyState, PageIntro, Progress } from "@/components/ui";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import RoleIcon from "@/components/roles/RoleIcon";
 import Dropdown from "@/components/ui/Dropdown";
+import SearchField from "@/components/ui/SearchField";
 
 export default function TeamView() {
   const [data, setData] = useState(null);
@@ -82,7 +83,7 @@ export default function TeamView() {
         <div className="flex flex-col gap-4 border-b border-neutral-100 p-4 lg:flex-row lg:items-center lg:justify-between lg:p-5">
           <div className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UsersRound size={19} /></span><div><h2 className="font-semibold">Team members</h2><p className="text-xs text-neutral-500">{filtered.length} Team members</p></div></div>
           <div className="grid gap-2 sm:grid-cols-3 lg:w-[760px]">
-            <label className="relative sm:col-span-1"><Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" /><input aria-label="Search members" className="field search-field" placeholder="Search members…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+            <SearchField className="sm:col-span-1" ariaLabel="Search members" placeholder="Search members…" value={search} onChange={setSearch} />
             <Dropdown multiple value={role} onChange={setRole} placeholder="All roles" options={data.roles.filter((item) => !data.highlightedRoleKeys.includes(item.key)).map((item) => [item.key, item.name])} />
             <Dropdown multiple value={project} onChange={setProject} placeholder="All projects" options={data.projects.map((item) => [item._id, item.name])} />
           </div>

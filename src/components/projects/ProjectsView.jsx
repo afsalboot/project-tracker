@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Archive, Check, MoreHorizontal, Pencil, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { Archive, Check, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { PRIORITIES } from "@/constants/project";
 import { Badge, DateText, EmptyState, FilterPanel, PageIntro, Progress } from "@/components/ui";
@@ -10,6 +10,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import ProjectDialog from "@/components/forms/ProjectDialog";
 import AssigneeSummary from "@/components/ui/AssigneeSummary";
 import Dropdown from "@/components/ui/Dropdown";
+import SearchField from "@/components/ui/SearchField";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
 import { projectPlatformName, projectZohoPlatforms } from "@/lib/customization";
 
@@ -131,7 +132,7 @@ export default function ProjectsView({ permissions = [] }) {
       >
         <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-white to-emerald-50/30 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.85)]">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[minmax(220px,1.6fr)_repeat(8,minmax(130px,1fr))]">
-            <label className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-emerald-600" size={16} /><input aria-label="Search projects" className="field search-field !min-h-10 !rounded-xl !border-white/80 !bg-white/90 !py-1.5 shadow-sm" placeholder="Search projects or clients…" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} /></label>
+            <SearchField ariaLabel="Search projects" inputClassName="!min-h-10 !rounded-xl !border-white/80 !bg-white/90 !py-1.5 shadow-sm" placeholder="Search projects or clients…" value={filters.search} onChange={(search) => setFilters({ ...filters, search })} />
             {canFilterUsers && <Filter label="All users" options={recordUsers.map((user) => [user._id, user.username ? `${user.name} (@${user.username})` : user.name])} value={filters.userId} onChange={(userId) => setFilters({ ...filters, userId })} />}
             {visibility.stage && <Filter label="All stages" values={customization.projectStages.filter((item) => item.enabled).map((item) => item.label)} value={filters.stage} onChange={(stage) => setFilters({ ...filters, stage })} />}
             <Filter label="All priorities" values={PRIORITIES} value={filters.priority} onChange={(priority) => setFilters({ ...filters, priority })} />

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, endOfWeek, isBefore, isSameDay, startOfDay } from "date-fns";
-import { GripVertical, Plus, Search } from "lucide-react";
+import { GripVertical, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PRIORITIES } from "@/constants/project";
 import { Badge, DateText, EmptyState, FilterPanel, PageIntro } from "@/components/ui";
@@ -14,6 +14,7 @@ import SubtaskSummary from "@/components/tasks/SubtaskSummary";
 import CommentCount from "@/components/tasks/CommentCount";
 import AssigneeSummary from "@/components/ui/AssigneeSummary";
 import Dropdown from "@/components/ui/Dropdown";
+import SearchField from "@/components/ui/SearchField";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
 
 export default function TasksView({ mode = "list", permissions = [] }) {
@@ -116,7 +117,7 @@ export default function TasksView({ mode = "list", permissions = [] }) {
         onClear={() => setFilters({ ...filters, search: "", userId: [], projectId: [], status: mode === "completed" ? [completedStatus] : [], priority: [], environment: [] })}
       >
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-7">
-          <label className="relative sm:col-span-2 xl:col-span-2"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={17} /><input className="field search-field" aria-label="Search tasks" placeholder="Search tasks…" value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} /></label>
+          <SearchField className="sm:col-span-2 xl:col-span-2" ariaLabel="Search tasks" placeholder="Search tasks…" value={filters.search} onChange={(search) => setFilters({ ...filters, search })} />
           {canFilterUsers && <Filter label="All creators" items={recordUsers.map((user) => [user._id, user.username ? `${user.name} (@${user.username})` : user.name])} value={filters.userId} change={(userId) => setFilters({ ...filters, userId })} />}
           <Filter label="All projects" items={projects.map((item) => [item._id, item.name])} value={filters.projectId} change={(projectId) => setFilters({ ...filters, projectId })} />
           {mode !== "completed" && showStatus && <Filter label="All statuses" items={statusOptions.map((item) => [item, item])} value={filters.status} change={(status) => setFilters({ ...filters, status })} />}

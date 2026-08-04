@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Archive, Check, Clipboard, ExternalLink, Pencil, Plus, Search } from "lucide-react";
+import { Archive, Check, Clipboard, ExternalLink, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Badge, DateText, EmptyState, Progress } from "@/components/ui";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -13,6 +13,7 @@ import CommentCount from "@/components/tasks/CommentCount";
 import AssigneeSummary from "@/components/ui/AssigneeSummary";
 import ProjectDialog from "@/components/forms/ProjectDialog";
 import Dropdown from "@/components/ui/Dropdown";
+import SearchField from "@/components/ui/SearchField";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
 import { projectPlatformName, projectZohoPlatforms } from "@/lib/customization";
 
@@ -125,7 +126,7 @@ export default function ProjectDetail({ projectId, permissions = [] }) {
           {showStage && <section className="card p-5"><h3 className="font-semibold">Project stage</h3><Dropdown className="mt-3" disabled={!canEditProject} value={stageOptions.includes(project.stage) ? project.stage : ""} placeholder="Select an enabled stage" onChange={(stage) => mutate("stage", { stage })} options={stageOptions} /></section>}
         </aside>
         {canViewTasks && <section className="min-w-0 xl:col-span-2">
-          <div className="mb-3 grid grid-cols-2 gap-3 sm:flex"><label className="relative col-span-2 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={17} /><input className="field search-field" placeholder="Search tasks…" aria-label="Search tasks" value={search} onChange={(event) => setSearch(event.target.value)} /></label>{showStatus && <Dropdown multiple className="sm:w-52" ariaLabel="Filter task status" value={statusFilter} onChange={setStatusFilter} placeholder="All statuses" options={statusOptions} />}{canCreateTasks && <button className="btn btn-primary shrink-0" onClick={() => setDialog({})}><Plus size={16} />Add task</button>}</div>
+          <div className="mb-3 grid grid-cols-2 gap-3 sm:flex"><SearchField className="col-span-2 flex-1" placeholder="Search tasks…" ariaLabel="Search tasks" value={search} onChange={setSearch} />{showStatus && <Dropdown multiple className="sm:w-52" ariaLabel="Filter task status" value={statusFilter} onChange={setStatusFilter} placeholder="All statuses" options={statusOptions} />}{canCreateTasks && <button className="btn btn-primary shrink-0" onClick={() => setDialog({})}><Plus size={16} />Add task</button>}</div>
           {visibleTasks.length ? <div className="space-y-3">{visibleTasks.map((task) => <TaskRow key={task._id} task={task} update={updateTask} edit={() => setDialog(task)} expanded={detailsTask?._id === task._id} toggle={() => setDetailsTask(detailsTask?._id === task._id ? null : task)} remove={requestTaskDelete} permissions={permissions} onChanged={load} canEdit={canEditTasks} canDelete={canDeleteTasks} statusOptions={statusOptions} completedStatus={completedStatus} defaultStatus={defaultStatus} blockedStatus={blockedStatus} showStatus={showStatus} showPeople={showPeople} />)}</div> : <EmptyState title="No tasks found" description="Add the first task or change the current filters." />}
         </section>}
       </div>

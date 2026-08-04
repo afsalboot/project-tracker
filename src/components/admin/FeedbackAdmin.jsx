@@ -6,7 +6,6 @@ import {
   Clock3,
   MessageSquareText,
   RotateCcw,
-  Search,
   ShieldCheck,
   Star,
   XCircle,
@@ -14,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { EmptyState, PageIntro } from "@/components/ui";
 import Dropdown from "@/components/ui/Dropdown";
+import SearchField from "@/components/ui/SearchField";
 
 const statusOptions = [
   ["", "All feedback"],
@@ -76,7 +76,7 @@ export default function FeedbackAdmin() {
       </div>
       <section className="card mb-5 overflow-visible">
         <div className="flex flex-col gap-3 p-4 sm:flex-row sm:p-5">
-          <label className="relative flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={17} /><input className="field search-field" aria-label="Search feedback" placeholder="Search name, email, or message..." value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+          <SearchField className="flex-1" ariaLabel="Search feedback" placeholder="Search name, email, or message..." value={search} onChange={setSearch} />
           <Dropdown className="sm:w-52" ariaLabel="Feedback status" value={status} onChange={setStatus} options={statusOptions} />
         </div>
       </section>
