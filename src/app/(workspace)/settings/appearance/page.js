@@ -10,5 +10,5 @@ export default async function AppearanceSettingsPage() {
   if (!hasWorkspacePermission(user.workspace, user.role, "settings.appearance") || !hasWorkspacePermission(user.workspace, user.role, "workspace.manage")) {
     redirect("/settings");
   }
-  return <AppearanceSettings initialTheme={user.workspace.sidebarTheme} />;
+  return <AppearanceSettings initialTheme={user.workspace.sidebarTheme} initialMode={user.workspace.colorMode} />;
 }

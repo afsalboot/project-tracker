@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { sidebarTheme } from "@/constants/appearance";
+import { DEFAULT_COLOR_MODE, sidebarTheme } from "@/constants/appearance";
 import FloatingDateTime from "@/components/layout/FloatingDateTime";
 
 const nav = [
@@ -39,7 +39,8 @@ export default function AppShell({ user, children }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
   const [open, setOpen] = useState(false);
-  const theme = sidebarTheme(user.workspace?.sidebarTheme);
+  const colorMode = user.workspace?.colorMode === "dark" ? "dark" : DEFAULT_COLOR_MODE;
+  const theme = sidebarTheme(user.workspace?.sidebarTheme, colorMode);
   const themeStyles = useMemo(() => ({
     "--sidebar": theme.background,
     "--accent": theme.accent,
@@ -48,10 +49,12 @@ export default function AppShell({ user, children }) {
   useEffect(() => {
     const root = document.documentElement;
     const previousWorkspaceTheme = root.dataset.workspaceTheme;
+    const previousColorMode = root.dataset.colorMode;
     const previous = Object.fromEntries(
       Object.entries(themeStyles).map(([property]) => [property, root.style.getPropertyValue(property)]),
     );
     root.dataset.workspaceTheme = "true";
+    root.dataset.colorMode = colorMode;
     Object.entries(themeStyles).forEach(([property, value]) => root.style.setProperty(property, value));
     return () => {
       Object.entries(previous).forEach(([property, value]) => {
@@ -60,8 +63,10 @@ export default function AppShell({ user, children }) {
       });
       if (previousWorkspaceTheme) root.dataset.workspaceTheme = previousWorkspaceTheme;
       else delete root.dataset.workspaceTheme;
+      if (previousColorMode) root.dataset.colorMode = previousColorMode;
+      else delete root.dataset.colorMode;
     };
-  }, [themeStyles]);
+  }, [colorMode, themeStyles]);
   useEffect(() => {
     function closeOutside(event) {
       document.querySelectorAll("details[data-action-menu][open]").forEach((menu) => {
@@ -93,6 +98,7 @@ export default function AppShell({ user, children }) {
     const root = document.documentElement;
     ["--sidebar", "--accent", "--accent-hover"].forEach((property) => root.style.removeProperty(property));
     delete root.dataset.workspaceTheme;
+    delete root.dataset.colorMode;
     toast.success("You have been logged out.");
     router.replace("/login");
     router.refresh();
@@ -131,7 +137,7 @@ export default function AppShell({ user, children }) {
   );
 
   return (
-    <div className="workspace-theme min-h-screen" style={themeStyles}>
+    <div className="workspace-theme min-h-screen" data-color-mode={colorMode} style={themeStyles}>
       <aside className={cn("fixed inset-y-0 left-0 z-40 hidden flex-col bg-[var(--sidebar)] text-white shadow-[12px_0_36px_rgba(17,24,39,.08)] transition-[width,background] md:flex", collapsed ? "w-[72px]" : "w-[224px]")}>{sidebar}</aside>
       {open && <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px] md:hidden" onClick={() => setOpen(false)}><aside className="flex h-full w-[min(268px,calc(100vw-40px))] flex-col bg-[var(--sidebar)] text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>{sidebar}</aside></div>}
       <div className={cn("min-w-0 transition-[padding] md:pl-[224px]", collapsed && "md:pl-[72px]")}>
