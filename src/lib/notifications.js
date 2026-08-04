@@ -3,7 +3,8 @@ import Project from "@/models/Project";
 import TaskComment from "@/models/TaskComment";
 import { projectAccessFilter } from "@/lib/project-access";
 
-export async function getUserNotifications(auth, { limit = 60 } = {}) {
+export async function getUserNotifications(auth, { limit = 60, clearedAt = null, dismissedIds = [] } = {}) {
+  const queryLimit = Math.min(200, limit + dismissedIds.length);
   const projects = await Project.find({
     workspaceId: auth.workspaceId,
     ...projectAccessFilter(auth),
@@ -23,7 +24,7 @@ export async function getUserNotifications(auth, { limit = 60 } = {}) {
       .populate("projectId", "name")
       .populate("taskId", "title")
       .sort({ createdAt: -1 })
-      .limit(limit)
+      .limit(queryLimit)
       .lean(),
     Activity.find({
       workspaceId: auth.workspaceId,
@@ -34,7 +35,7 @@ export async function getUserNotifications(auth, { limit = 60 } = {}) {
       .populate("userId", "name username")
       .populate("projectId", "name")
       .sort({ createdAt: -1 })
-      .limit(limit)
+      .limit(queryLimit)
       .lean(),
   ]);
 
@@ -46,6 +47,7 @@ export async function getUserNotifications(auth, { limit = 60 } = {}) {
     !assignmentProjectIds.has(String(project._id)),
   );
 
+  const dismissed = new Set(dismissedIds);
   return [
     ...mentions.map((comment) => ({
       _id: `mention-${comment._id}`,
@@ -76,6 +78,7 @@ export async function getUserNotifications(auth, { limit = 60 } = {}) {
       createdAt: project.createdAt,
     })),
   ]
+    .filter((item) => (!clearedAt || new Date(item.createdAt) > new Date(clearedAt)) && !dismissed.has(item._id))
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, limit);
 }

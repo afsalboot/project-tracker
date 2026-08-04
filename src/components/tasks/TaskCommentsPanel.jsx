@@ -53,7 +53,7 @@ function CommentBody({ body, mentionAliases }) {
   return parts;
 }
 
-export default function TaskCommentsPanel({ taskId, permissions, heading = "Comments", readOnly = false }) {
+export default function TaskCommentsPanel({ taskId, permissions, heading = "Comments", readOnly = false, workspaceType = "personal", onChanged }) {
   const [comments, setComments] = useState([]);
   const [currentUserId, setCurrentUserId] = useState("");
   const [mentionMembers, setMentionMembers] = useState([]);
@@ -167,6 +167,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
     setMentionSearch(null);
     setSelectedMentions([]);
     load();
+    onChanged?.();
   }
 
   async function remove() {
@@ -176,6 +177,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
     toast.success(result.message);
     setDeleteTarget(null);
     load();
+    onChanged?.();
   }
 
   return (
@@ -206,7 +208,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
               const handle = member.username || member.name.trim().replace(/\s+/g, ".");
               return <span key={member._id} className="inline-flex min-h-7 items-center rounded-full border border-emerald-200 bg-emerald-50 pl-2.5 pr-1.5 text-xs font-semibold text-emerald-700">@{handle}<button type="button" className="ml-1 grid size-5 place-items-center rounded-full text-emerald-600 transition hover:bg-emerald-100 hover:text-emerald-800" onClick={() => setSelectedMentions((current) => current.filter((item) => String(item._id) !== String(member._id)))} aria-label={`Remove ${member.name} mention`}><X size={11} /></button></span>;
             })}</div>}
-            <textarea ref={textareaRef} role="combobox" className={`block min-h-28 w-full resize-y border-0 bg-transparent px-3 pb-3 text-sm leading-6 text-neutral-800 outline-none focus:outline-none focus-visible:outline-none ${selectedMentions.length ? "pt-2" : "pt-3"}`} maxLength={5000} value={editing ? editing.body : draft} onChange={(event) => updateBody(event.target.value, event.target.selectionStart)} onClick={(event) => updateMentionSearch(event.currentTarget.value, event.currentTarget.selectionStart)} onKeyUp={(event) => { if (!["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(event.key)) updateMentionSearch(event.currentTarget.value, event.currentTarget.selectionStart); }} onKeyDown={handleMentionKeys} placeholder="Share an update, question, or blocker… Use @name, @username, or @email to mention someone." aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={Boolean(mentionSearch)} aria-controls={mentionListId} />
+            <textarea ref={textareaRef} role="combobox" className={`block min-h-28 w-full resize-y border-0 bg-transparent px-3 pb-3 text-sm leading-6 text-neutral-800 outline-none focus:outline-none focus-visible:outline-none ${selectedMentions.length ? "pt-2" : "pt-3"}`} maxLength={5000} value={editing ? editing.body : draft} onChange={(event) => updateBody(event.target.value, event.target.selectionStart)} onClick={(event) => updateMentionSearch(event.currentTarget.value, event.currentTarget.selectionStart)} onKeyUp={(event) => { if (!["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(event.key)) updateMentionSearch(event.currentTarget.value, event.currentTarget.selectionStart); }} onKeyDown={handleMentionKeys} placeholder={workspaceType === "personal" ? "Add a note, update, question, or blocker about this task…" : workspaceType === "organization" ? "Share an update with your organization… Use @name, @username, or @email to mention someone." : "Share an update with your team… Use @name, @username, or @email to mention someone."} aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={Boolean(mentionSearch)} aria-controls={mentionListId} />
           </div>
           {mentionSearch && <div id={mentionListId} role="listbox" className="absolute inset-x-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-xl border border-neutral-200 bg-white p-1.5 shadow-xl">
             {filteredMentionMembers.length ? filteredMentionMembers.map((member, index) => <button key={member._id} type="button" role="option" aria-selected={index === activeMentionIndex} onMouseDown={(event) => event.preventDefault()} onClick={() => insertMention(member)} onMouseEnter={() => setActiveMentionIndex(index)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${index === activeMentionIndex ? "bg-emerald-50" : "hover:bg-neutral-50"}`}>
@@ -216,7 +218,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
             </button>) : <p className="px-3 py-4 text-center text-sm text-neutral-500">No matching users</p>}
           </div>}
         </label>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-[11px] leading-4 text-neutral-400">Use @name, @username, or @email to notify a workspace member.</p><div className="flex justify-end gap-2">{editing && <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setMentionSearch(null); setSelectedMentions([]); }}>Cancel</button>}<button className="btn btn-primary" disabled={saving || !(editing ? editing.body : draft).trim()}>{saving ? "Saving…" : editing ? "Save comment" : "Comment"}</button></div></div>
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-[11px] leading-4 text-neutral-400">{workspaceType === "personal" ? "Keep task context and progress notes together." : "Use @name, @username, or @email to notify a workspace member."}</p><div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">{editing && <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setMentionSearch(null); setSelectedMentions([]); }}>Cancel</button>}<button className={`btn btn-primary ${editing ? "" : "col-span-2 sm:col-span-1"}`} disabled={saving || !(editing ? editing.body : draft).trim()}>{saving ? "Saving…" : editing ? "Save comment" : "Comment"}</button></div></div>
       </form> : <p className="mt-4 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">Read-only task. Only the task creator can add or change comments.</p>}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Delete this comment?" description="This comment will be permanently removed from the task discussion." confirmLabel="Delete comment" onClose={() => setDeleteTarget(null)} onConfirm={remove} />
     </>

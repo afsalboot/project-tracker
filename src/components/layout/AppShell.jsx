@@ -47,15 +47,19 @@ export default function AppShell({ user, children }) {
   }), [theme.accent, theme.accentHover, theme.background]);
   useEffect(() => {
     const root = document.documentElement;
+    const previousWorkspaceTheme = root.dataset.workspaceTheme;
     const previous = Object.fromEntries(
       Object.entries(themeStyles).map(([property]) => [property, root.style.getPropertyValue(property)]),
     );
+    root.dataset.workspaceTheme = "true";
     Object.entries(themeStyles).forEach(([property, value]) => root.style.setProperty(property, value));
     return () => {
       Object.entries(previous).forEach(([property, value]) => {
         if (value) root.style.setProperty(property, value);
         else root.style.removeProperty(property);
       });
+      if (previousWorkspaceTheme) root.dataset.workspaceTheme = previousWorkspaceTheme;
+      else delete root.dataset.workspaceTheme;
     };
   }, [themeStyles]);
   useEffect(() => {
@@ -86,6 +90,9 @@ export default function AppShell({ user, children }) {
   );
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    const root = document.documentElement;
+    ["--sidebar", "--accent", "--accent-hover"].forEach((property) => root.style.removeProperty(property));
+    delete root.dataset.workspaceTheme;
     toast.success("You have been logged out.");
     router.replace("/login");
     router.refresh();
@@ -95,10 +102,10 @@ export default function AppShell({ user, children }) {
     <>
       <div className="flex h-16 items-center gap-3 border-b border-white/10 px-4">
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/10 shadow-inner shadow-white/5"><PanelsTopLeft size={19} /></span>
-        {!collapsed && <span className="font-semibold tracking-[-0.02em]">Project 1 Workspace</span>}
+        <span className={cn("font-semibold tracking-[-0.02em]", collapsed && "md:hidden")}>Project 1 Workspace</span>
         <button aria-label="Close menu" className="ml-auto md:hidden" onClick={() => setOpen(false)}><X size={20} /></button>
       </div>
-      <nav className="flex-1 space-y-1 p-3" aria-label="Primary navigation">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Primary navigation">
         {visibleNav.map(([href, label, Icon]) => (
           <Link
             key={href}
@@ -108,16 +115,16 @@ export default function AppShell({ user, children }) {
             className={cn(
               "sidebar-nav-item flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-[background,color,box-shadow] duration-200",
               path.startsWith(href) && "sidebar-nav-item-active",
-              collapsed && "justify-center px-0",
+              collapsed && "md:justify-center md:px-0",
             )}
           >
-            <Icon size={19} />{!collapsed && label}
+            <Icon className="shrink-0" size={19} /><span className={cn("truncate", collapsed && "md:hidden")}>{label}</span>
           </Link>
         ))}
       </nav>
       <div className="border-t border-white/10 p-3">
-        {!collapsed && <div className="mb-2 px-3 py-2"><p className="truncate text-sm font-semibold">{user.workspace?.name || "My Workspace"}</p><p className="truncate text-xs capitalize text-emerald-50/55">{user.workspace?.type || "Personal"} · {user.name}</p></div>}
-        <button onClick={logout} title={collapsed ? "Log out" : undefined} className={cn("sidebar-nav-item flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm transition-colors", collapsed && "justify-center px-0")}><LogOut size={18} />{!collapsed && "Log out"}</button>
+        <div className={cn("mb-2 px-3 py-2", collapsed && "md:hidden")}><p className="truncate text-sm font-semibold">{user.workspace?.name || "My Workspace"}</p><p className="truncate text-xs capitalize text-emerald-50/55">{user.workspace?.type || "Personal"} · {user.name}</p></div>
+        <button onClick={logout} title={collapsed ? "Log out" : undefined} className={cn("sidebar-nav-item flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm transition-colors", collapsed && "md:justify-center md:px-0")}><LogOut className="shrink-0" size={18} /><span className={cn(collapsed && "md:hidden")}>Log out</span></button>
         <button onClick={() => setCollapsed((value) => !value)} className="sidebar-nav-item mt-1 hidden min-h-10 w-full items-center justify-center rounded-xl transition-colors md:flex" aria-label="Toggle sidebar"><ChevronsLeft className={cn("transition-transform", collapsed && "rotate-180")} size={18} /></button>
       </div>
     </>
@@ -126,11 +133,11 @@ export default function AppShell({ user, children }) {
   return (
     <div className="workspace-theme min-h-screen" style={themeStyles}>
       <aside className={cn("fixed inset-y-0 left-0 z-40 hidden flex-col bg-[var(--sidebar)] text-white shadow-[12px_0_36px_rgba(17,24,39,.08)] transition-[width,background] md:flex", collapsed ? "w-[72px]" : "w-[224px]")}>{sidebar}</aside>
-      {open && <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px] md:hidden" onClick={() => setOpen(false)}><aside className="flex h-full w-[268px] flex-col bg-[var(--sidebar)] text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>{sidebar}</aside></div>}
+      {open && <div className="fixed inset-0 z-50 bg-black/35 backdrop-blur-[2px] md:hidden" onClick={() => setOpen(false)}><aside className="flex h-full w-[min(268px,calc(100vw-40px))] flex-col bg-[var(--sidebar)] text-white shadow-2xl" onClick={(event) => event.stopPropagation()}>{sidebar}</aside></div>}
       <div className={cn("min-w-0 transition-[padding] md:pl-[224px]", collapsed && "md:pl-[72px]")}>
         <button className="fixed left-4 top-4 z-30 grid size-11 place-items-center rounded-xl border border-[var(--brand-200)] bg-white text-[var(--accent)] shadow-sm transition hover:bg-[var(--accent-soft)] md:hidden" aria-label="Open menu" onClick={() => setOpen(true)}><Menu size={20} /></button>
         <FloatingDateTime />
-        <main className="mx-auto w-full min-w-0 max-w-[1500px] px-4 pb-24 pt-20 md:p-6 lg:p-8">{children}</main>
+        <main className="mx-auto w-full min-w-0 max-w-[1500px] px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-20 min-[380px]:px-4 md:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

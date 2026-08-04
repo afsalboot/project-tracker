@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { AtSign, Bell, UserPlus } from "lucide-react";
+import { AtSign, Bell, Trash2, UserPlus, X } from "lucide-react";
 
 export default function NotificationBell({ onOpen }) {
   const rootRef = useRef(null);
@@ -65,6 +65,20 @@ export default function NotificationBell({ onOpen }) {
     }
   }
 
+  async function clear(notificationId) {
+    setState((current) => ({
+      ...current,
+      items: notificationId ? current.items.filter((item) => item._id !== notificationId) : [],
+      unreadCount: 0,
+    }));
+    const response = await fetch("/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(notificationId ? { notificationId } : {}),
+    }).catch(() => null);
+    if (!response?.ok) load();
+  }
+
   return (
     <div className="relative" ref={rootRef}>
       <button
@@ -78,27 +92,33 @@ export default function NotificationBell({ onOpen }) {
         {state.unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">{state.unreadCount > 99 ? "99+" : state.unreadCount}</span>}
       </button>
 
-      {open && <section className="absolute right-0 top-[calc(100%+10px)] w-[min(380px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_18px_55px_rgba(20,32,26,.18)]">
-        <div className="flex items-center border-b border-neutral-100 px-4 py-3.5">
+      {open && <section className="fixed inset-x-4 top-20 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_18px_55px_rgba(20,32,26,.18)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-[calc(100%+10px)] sm:w-[min(380px,calc(100vw-32px))]">
+        <div className="flex items-center gap-1 border-b border-neutral-100 px-4 py-3.5">
           <div><p className="font-semibold">Notifications</p><p className="mt-0.5 text-xs text-neutral-500">Assignments and mentions update automatically.</p></div>
-          <Link href="/mentions" className="ml-auto rounded-lg px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50" onClick={() => setOpen(false)}>View all</Link>
+          <div className="ml-auto flex shrink-0 items-center">
+            {state.items.length > 0 && <button type="button" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-neutral-500 transition hover:bg-red-50 hover:text-red-600" onClick={() => clear()} aria-label="Clear all notifications"><Trash2 size={15} /><span className="hidden sm:inline">Clear all</span></button>}
+            <Link href="/mentions" className="rounded-lg px-2 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50" onClick={() => setOpen(false)}>View all</Link>
+          </div>
         </div>
         <div className="max-h-[min(430px,65vh)] overflow-y-auto p-2">
-          {state.loading ? <div className="space-y-2 p-2">{[1, 2, 3].map((item) => <div className="skeleton h-16" key={item} />)}</div> : state.items.length ? state.items.map((item) => <NotificationRow item={item} key={item._id} onClick={() => setOpen(false)} />) : <div className="px-5 py-10 text-center"><Bell className="mx-auto text-neutral-300" size={24} /><p className="mt-3 text-sm font-semibold">No notifications yet</p><p className="mt-1 text-xs text-neutral-500">New project assignments and mentions will appear here.</p></div>}
+          {state.loading ? <div className="space-y-2 p-2">{[1, 2, 3].map((item) => <div className="skeleton h-16" key={item} />)}</div> : state.items.length ? state.items.map((item) => <NotificationRow item={item} key={item._id} onClick={() => setOpen(false)} onClear={() => clear(item._id)} />) : <div className="px-5 py-10 text-center"><Bell className="mx-auto text-neutral-300" size={24} /><p className="mt-3 text-sm font-semibold">No notifications yet</p><p className="mt-1 text-xs text-neutral-500">New project assignments and mentions will appear here.</p></div>}
         </div>
       </section>}
     </div>
   );
 }
 
-export function NotificationRow({ item, onClick }) {
+export function NotificationRow({ item, onClick, onClear }) {
   const Icon = item.type === "mention" ? AtSign : UserPlus;
-  return <Link href={item.href} onClick={onClick} className="flex gap-3 rounded-xl p-3 transition hover:bg-emerald-50/70">
+  return <div className="group relative rounded-xl transition hover:bg-emerald-50/70">
+    <Link href={item.href} onClick={onClick} className="flex gap-3 p-3 pr-11">
     <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><Icon size={17} /></span>
     <span className="min-w-0 flex-1">
       <span className="block text-sm font-semibold text-neutral-800">{item.title}</span>
       <span className="mt-0.5 block truncate text-xs text-neutral-500">{item.type === "mention" ? item.taskName : item.message}</span>
       <span className="mt-1 block text-[11px] text-neutral-400">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}</span>
     </span>
-  </Link>;
+    </Link>
+    {onClear && <button type="button" onClick={onClear} className="absolute right-2 top-2 grid size-8 place-items-center rounded-lg text-neutral-400 transition hover:bg-white hover:text-red-600" aria-label={`Clear ${item.title}`}><X size={15} /></button>}
+  </div>;
 }

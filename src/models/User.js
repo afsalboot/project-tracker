@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema(
     },
     sessionVersion: { type: Number, min: 0, default: 0, select: false },
     notificationReadAt: { type: Date, default: null },
+    notificationClearedAt: { type: Date, default: null },
+    dismissedNotificationIds: [{ type: String, trim: true, maxlength: 200 }],
     workspaceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Workspace",

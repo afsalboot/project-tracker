@@ -4,6 +4,7 @@ import { pageOptions, requireApiUser, requireWorkspacePermission, validId } from
 import { escapeRegex } from "@/lib/utils";
 import Task from "@/models/Task";
 import Project from "@/models/Project";
+import TaskComment from "@/models/TaskComment";
 import { projectAccessFilter } from "@/lib/project-access";
 import { canAccessOthersTasks, taskAccessFilter } from "@/lib/task-access";
 import { completedTaskStatus } from "@/lib/customization";
@@ -76,8 +77,8 @@ export async function GET(request) {
         .lean(),
       Task.countDocuments(query),
     ]);
-    const subtaskStats = items.length
-      ? await Task.aggregate([
+    const [subtaskStats, commentStats] = items.length
+      ? await Promise.all([Task.aggregate([
         {
           $match: {
             workspaceId: auth.workspaceId,
@@ -93,11 +94,15 @@ export async function GET(request) {
             },
           },
         },
-      ])
-      : [];
+      ]), TaskComment.aggregate([
+        { $match: { workspaceId: auth.workspaceId, taskId: { $in: items.map((item) => item._id) } } },
+        { $group: { _id: "$taskId", count: { $sum: 1 } } },
+      ])])
+      : [[], []];
     const statsByTask = new Map(
       subtaskStats.map((item) => [String(item._id), item]),
     );
+    const commentsByTask = new Map(commentStats.map((item) => [String(item._id), item.count]));
     const tasks = items.map((item) => {
       const stats = statsByTask.get(String(item._id));
       return {
@@ -105,6 +110,7 @@ export async function GET(request) {
         isCreator: String(item.userId?._id || item.userId) === String(auth.userId),
         totalSubtasks: stats?.total || 0,
         completedSubtasks: stats?.completed || 0,
+        commentCount: commentsByTask.get(String(item._id)) || 0,
       };
     });
     return ok({ items: tasks, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });

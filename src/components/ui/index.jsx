@@ -33,7 +33,7 @@ export function EmptyState({ title, description, action }) {
 }
 
 export function PageIntro({ eyebrow, title, description, actions }) {
-  return <div className="mb-5 flex flex-col justify-between gap-3 sm:mb-6 sm:flex-row sm:items-end"><div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-[.14em] text-emerald-700 sm:text-xs">{eyebrow}</p><h2 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">{title}</h2>{description && <p className="mt-1 max-w-2xl text-sm leading-5 text-neutral-500">{description}</p>}</div>{actions && <div className="flex flex-wrap gap-2">{actions}</div>}</div>;
+  return <div className="mb-5 flex min-w-0 flex-col justify-between gap-3 sm:mb-6 sm:flex-row sm:items-end"><div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-[.14em] text-emerald-700 sm:text-xs">{eyebrow}</p><h2 className="mt-1 break-words text-xl font-semibold tracking-tight sm:text-2xl">{title}</h2>{description && <p className="mt-1 max-w-2xl break-words text-sm leading-5 text-neutral-500">{description}</p>}</div>{actions && <div className="grid w-full grid-cols-1 gap-2 min-[420px]:flex min-[420px]:w-auto min-[420px]:flex-wrap [&_.btn]:w-full min-[420px]:[&_.btn]:w-auto">{actions}</div>}</div>;
 }
 
 export function FilterPanel({ children, activeCount = 0, onClear, title = "Filters", collapsed = false, onToggle }) {

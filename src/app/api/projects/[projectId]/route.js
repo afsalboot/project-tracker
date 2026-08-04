@@ -41,8 +41,8 @@ export async function GET(_request, { params }) {
     const completedStatus = completedTaskStatus(auth.workspace);
     const blockedStatus = blockedTaskStatus(auth.workspace);
     const testingStatus = testingTaskStatus(auth.workspace);
-    const subtaskStats = tasks.length
-      ? await Task.aggregate([
+    const [subtaskStats, commentStats] = tasks.length
+      ? await Promise.all([Task.aggregate([
         {
           $match: {
             workspaceId: auth.workspaceId,
@@ -59,11 +59,15 @@ export async function GET(_request, { params }) {
             },
           },
         },
-      ])
-      : [];
+      ]), TaskComment.aggregate([
+        { $match: { workspaceId: auth.workspaceId, taskId: { $in: tasks.map((task) => task._id) } } },
+        { $group: { _id: "$taskId", count: { $sum: 1 } } },
+      ])])
+      : [[], []];
     const statsByTask = new Map(
       subtaskStats.map((item) => [String(item._id), item]),
     );
+    const commentsByTask = new Map(commentStats.map((item) => [String(item._id), item.count]));
     const tasksWithSubtasks = tasks.map((task) => {
       const subtask = statsByTask.get(String(task._id));
       return {
@@ -71,6 +75,7 @@ export async function GET(_request, { params }) {
         isCreator: String(task.userId?._id || task.userId) === String(auth.userId),
         totalSubtasks: subtask?.total || 0,
         completedSubtasks: subtask?.completed || 0,
+        commentCount: commentsByTask.get(String(task._id)) || 0,
       };
     });
     return ok({

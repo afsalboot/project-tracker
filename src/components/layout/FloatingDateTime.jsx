@@ -113,7 +113,7 @@ export default function FloatingDateTime() {
         className="flex min-h-12 items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-3.5 text-left shadow-[0_8px_28px_rgba(20,32,26,.14)] transition hover:-translate-y-0.5 hover:shadow-lg"
       >
         <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><CalendarDays size={17} /></span>
-        <span>
+        <span className="hidden min-[390px]:block">
           <span className="block whitespace-nowrap text-xs font-semibold text-neutral-800">{now ? format(now, "EEE, MMM d") : "Date & time"}</span>
           <span className="mt-0.5 block text-[11px] text-neutral-500">{now ? format(now, "h:mm a") : "Loading..."}</span>
         </span>

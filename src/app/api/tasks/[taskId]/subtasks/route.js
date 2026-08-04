@@ -3,6 +3,7 @@ import { cleanDates, requireApiUser, requireTaskCreator, requireWorkspacePermiss
 import { subtaskSchema } from "@/lib/validations";
 import Activity from "@/models/Activity";
 import Task from "@/models/Task";
+import TaskComment from "@/models/TaskComment";
 import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
 import { requireProjectRecordAccess } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
@@ -27,7 +28,12 @@ export async function GET(_request, { params }) {
       workspaceId: auth.workspaceId,
       ...taskAccessFilter(auth),
     }).populate("userId", "name").sort({ sortOrder: 1, createdAt: 1 }).lean();
-    return ok({ rootTaskId, subtasks: subtasks.map((item) => ({ ...item, isCreator: String(item.userId?._id || item.userId) === String(auth.userId) })) });
+    const commentStats = subtasks.length ? await TaskComment.aggregate([
+      { $match: { workspaceId: auth.workspaceId, taskId: { $in: subtasks.map((item) => item._id) } } },
+      { $group: { _id: "$taskId", count: { $sum: 1 } } },
+    ]) : [];
+    const commentsByTask = new Map(commentStats.map((item) => [String(item._id), item.count]));
+    return ok({ rootTaskId, subtasks: subtasks.map((item) => ({ ...item, isCreator: String(item.userId?._id || item.userId) === String(auth.userId), commentCount: commentsByTask.get(String(item._id)) || 0 })) });
   } catch (error) {
     return handleApiError(error);
   }

@@ -5,6 +5,7 @@ import { taskSchema } from "@/lib/validations";
 import Activity from "@/models/Activity";
 import Project from "@/models/Project";
 import Task from "@/models/Task";
+import TaskComment from "@/models/TaskComment";
 import { projectAccessFilter } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
 import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
@@ -70,7 +71,12 @@ export async function GET(request, { params }) {
       Task.find(query).populate("userId", "name").sort({ sortOrder: 1, createdAt: 1 }).skip(skip).limit(limit).lean(),
       Task.countDocuments(query),
     ]);
-    return ok({ items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+    const commentStats = items.length ? await TaskComment.aggregate([
+      { $match: { workspaceId: auth.workspaceId, taskId: { $in: items.map((item) => item._id) } } },
+      { $group: { _id: "$taskId", count: { $sum: 1 } } },
+    ]) : [];
+    const commentsByTask = new Map(commentStats.map((item) => [String(item._id), item.count]));
+    return ok({ items: items.map((item) => ({ ...item, commentCount: commentsByTask.get(String(item._id)) || 0 })), pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (error) {
     return handleApiError(error);
   }

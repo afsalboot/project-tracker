@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { DEFAULT_WORKSPACE_ROLES } from "@/constants/permissions";
 import { ROLE_ICON_KEYS } from "@/constants/roles";
+import { DEFAULT_SIDEBAR_THEME, SIDEBAR_THEMES } from "@/constants/appearance";
 
 const roleSchema = new mongoose.Schema(
   {
@@ -53,8 +54,8 @@ const workspaceSchema = new mongoose.Schema(
     },
     sidebarTheme: {
       type: String,
-      enum: ["forest", "midnight", "ocean", "plum", "graphite"],
-      default: "forest",
+      enum: SIDEBAR_THEMES.map((theme) => theme.id),
+      default: DEFAULT_SIDEBAR_THEME,
     },
   },
   { timestamps: true },

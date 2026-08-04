@@ -11,11 +11,12 @@ import TaskActionsMenu from "@/components/tasks/TaskActionsMenu";
 import TaskCommentsPanel from "@/components/tasks/TaskCommentsPanel";
 import Dropdown from "@/components/ui/Dropdown";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
+import CommentCount from "@/components/tasks/CommentCount";
 
 const emptySubtask = { title: "", description: "", status: "", priority: "Medium", dueDate: "" };
 
 export default function TaskExpandedContent({ task, permissions = [], onChanged }) {
-  const { customization } = useProjectCustomization();
+  const { customization, workspaceType } = useProjectCustomization();
   const [subtasks, setSubtasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -100,7 +101,7 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
         </section>
 
         <section className="overflow-visible rounded-xl border border-neutral-200 bg-white">
-          <div className="flex items-center justify-between gap-3 border-b border-neutral-100 p-4 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 p-4 sm:px-5">
             <div><h3 className="font-semibold">Subtasks</h3>{showStatus && <p className="text-xs text-neutral-500">{subtasks.filter((item) => item.status === completedStatus).length} of {subtasks.length} completed</p>}</div>
             {canCreate && <button className="btn btn-primary" onClick={() => setShowAdd((value) => !value)}><Plus size={15} />Add subtask</button>}
           </div>
@@ -121,7 +122,7 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
               {subtasks.map((item) => (
                 <details key={item._id}>
                   <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:px-5">
-                    <div className="min-w-0"><p className="truncate text-sm font-semibold">{item.title}</p><div className="mt-1 flex items-center gap-2 text-xs text-neutral-500"><Badge>{item.priority}</Badge><DateText value={item.dueDate} /></div></div>
+                    <div className="min-w-0"><p className="truncate text-sm font-semibold">{item.title}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-500"><Badge>{item.priority}</Badge><DateText value={item.dueDate} /><CommentCount count={item.commentCount} /></div></div>
                     <Badge>{item.status}</Badge>
                     {item.isCreator && <div className="col-span-2 justify-self-end sm:col-span-1">
                       <TaskActionsMenu task={item} canEdit={canEdit} canDelete={canDelete} canChangeStatus={item.status === completedStatus ? statusOptions.includes(defaultStatus) : statusOptions.includes(completedStatus)} completedStatus={completedStatus} onEdit={() => setEditTarget(item)} onToggleStatus={() => updateStatus(item, item.status === completedStatus ? defaultStatus : completedStatus)} onDelete={() => setDeleteTarget(item)} />
@@ -129,7 +130,7 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
                   </summary>
                   <div className="border-t border-neutral-100 bg-neutral-50/60 p-4 sm:px-5">
                     {item.description && <p className="mb-4 whitespace-pre-wrap text-sm leading-6 text-neutral-600">{item.description}</p>}
-                    <TaskCommentsPanel taskId={item._id} permissions={permissions} readOnly={!item.isCreator} />
+                    <TaskCommentsPanel taskId={item._id} permissions={permissions} readOnly={!item.isCreator} workspaceType={workspaceType} onChanged={() => { load(); onChanged?.(); }} />
                   </div>
                 </details>
               ))}
@@ -138,7 +139,7 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
         </section>
 
         <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <TaskCommentsPanel taskId={taskId} permissions={permissions} heading="Main task comments" readOnly={!task.isCreator} />
+          <TaskCommentsPanel taskId={taskId} permissions={permissions} heading="Main task comments" readOnly={!task.isCreator} workspaceType={workspaceType} onChanged={onChanged} />
         </section>
       </div>
 

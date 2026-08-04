@@ -11,6 +11,7 @@ import TaskDialog from "@/components/forms/TaskDialog";
 import TaskActionsMenu from "@/components/tasks/TaskActionsMenu";
 import TaskExpandedContent from "@/components/tasks/TaskExpandedContent";
 import SubtaskSummary from "@/components/tasks/SubtaskSummary";
+import CommentCount from "@/components/tasks/CommentCount";
 import AssigneeSummary from "@/components/ui/AssigneeSummary";
 import Dropdown from "@/components/ui/Dropdown";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
@@ -155,7 +156,7 @@ function TaskList({ tasks, update, edit, expandedId, toggle, remove, permissions
       <div className="min-w-0 sm:pr-44">
         <button className="block max-w-full truncate text-left font-semibold hover:text-emerald-700" onClick={() => toggle(task)} aria-expanded={expandedId === task._id}>{task.title}</button>
         <p className="mt-1 truncate text-xs text-neutral-500">{task.projectId?.name || "Project"}{showEnvironment ? ` · ${task.environment}` : ""}</p>
-        <SubtaskSummary task={task} className="mt-2" />
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1"><SubtaskSummary task={task} /><CommentCount count={task.commentCount} /></div>
       </div>
       <div className="mt-3 flex items-center gap-2 sm:absolute sm:right-5 sm:top-4 sm:mt-0">{showStatus && <StatusPill status={task.status} />}{task.isCreator && <TaskActionsMenu task={task} canEdit={canEdit} canDelete={canDelete} canChangeStatus={showStatus && (task.status === completedStatus ? statusOptions.includes(defaultStatus) : statusOptions.includes(completedStatus))} completedStatus={completedStatus} onEdit={() => edit(task)} onToggleStatus={() => update(task._id, task.status === completedStatus ? defaultStatus : completedStatus)} onDelete={() => remove(task)} />}</div>
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-neutral-100 pt-3">
@@ -231,7 +232,7 @@ function Board({ tasks, update, edit, expandedId, toggle, remove, permissions, o
                       </div>
                       <p className="mt-2 truncate text-xs font-medium text-neutral-500">{task.projectId?.name || "Project"}</p>
                       <div className="mt-4 flex flex-wrap items-center gap-2"><Badge>{task.priority}</Badge><span className="ml-auto whitespace-nowrap text-xs text-neutral-500"><DateText value={task.dueDate} /></span></div>
-                      <div className="mt-3 border-t border-neutral-100 pt-3"><SubtaskSummary task={task} />{showPeople && <AssigneeSummary users={[task.userId]} empty="Creator unavailable" className="mt-2" />}</div>
+                      <div className="mt-3 border-t border-neutral-100 pt-3"><div className="flex flex-wrap items-center gap-x-3 gap-y-1"><SubtaskSummary task={task} /><CommentCount count={task.commentCount} /></div>{showPeople && <AssigneeSummary users={[task.userId]} empty="Creator unavailable" className="mt-2" />}</div>
                       {showPeople && !task.isCreator && <p className="mt-3 rounded-lg bg-neutral-50 px-2.5 py-2 text-[11px] font-medium text-neutral-400">Project access · View only</p>}
                       {expandedId === task._id && <TaskExpandedContent task={task} permissions={permissions} onChanged={onChanged} />}
                     </article>

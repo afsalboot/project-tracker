@@ -9,6 +9,7 @@ import TaskDialog from "@/components/forms/TaskDialog";
 import TaskActionsMenu from "@/components/tasks/TaskActionsMenu";
 import TaskExpandedContent from "@/components/tasks/TaskExpandedContent";
 import SubtaskSummary from "@/components/tasks/SubtaskSummary";
+import CommentCount from "@/components/tasks/CommentCount";
 import AssigneeSummary from "@/components/ui/AssigneeSummary";
 import ProjectDialog from "@/components/forms/ProjectDialog";
 import Dropdown from "@/components/ui/Dropdown";
@@ -163,7 +164,7 @@ function TaskRow({ task, update, edit, expanded, toggle, remove, permissions, on
             <DateText value={task.dueDate} />
             {task.moduleApiName && <code className="max-w-44 truncate rounded bg-neutral-100 px-2 py-1">{task.moduleApiName}</code>}
           </div>
-          <SubtaskSummary task={task} className="mt-2" />
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1"><SubtaskSummary task={task} /><CommentCount count={task.commentCount} /></div>
           {showStatus && task.status === blockedStatus && task.blockerReason && <p className="mt-2 line-clamp-2 text-xs text-red-600">{task.blockerReason}</p>}
         </div>
         <div className="row-start-2 flex flex-wrap items-center gap-3 sm:row-auto">{showStatus && <Badge>{task.status}</Badge>}{showPeople && <AssigneeSummary users={[task.userId]} empty="Creator unavailable" />}{showPeople && !task.isCreator && <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500">View only</span>}</div>

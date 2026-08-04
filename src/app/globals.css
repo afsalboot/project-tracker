@@ -36,6 +36,17 @@
   --brand-900: color-mix(in srgb, var(--accent) 62%, black);
 }
 
+html[data-workspace-theme="true"] [data-sonner-toaster][data-sonner-theme="light"] {
+  --normal-border: var(--brand-200);
+  --normal-text: var(--accent-hover);
+  --success-bg: var(--accent-soft);
+  --success-border: var(--brand-200);
+  --success-text: var(--accent-hover);
+  --info-bg: var(--accent-soft);
+  --info-border: var(--brand-200);
+  --info-text: var(--accent-hover);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -52,7 +63,7 @@
   --font-mono: "Cascadia Code", Consolas, monospace;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; min-width: 0; }
 html { background: var(--background); }
 body {
   margin: 0;
@@ -65,6 +76,7 @@ body {
   text-rendering: optimizeLegibility;
 }
 button, a, input, select, textarea { outline-offset: 3px; }
+img, svg, video, canvas { max-width: 100%; }
 button, select { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .6; }
 ::selection { background: var(--brand-200); }
@@ -150,5 +162,6 @@ textarea.field { min-height: 110px; resize: vertical; }
   .mobile-scroll { overflow-x: auto; scrollbar-width: thin; }
   .field { min-height: 44px; }
   .btn { min-height: 44px; }
+  input, select, textarea { font-size: 16px !important; }
   .mobile-scroll { scroll-snap-type: x proximity; }
 }

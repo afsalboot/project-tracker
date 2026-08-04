@@ -46,7 +46,7 @@ export default function SettingsSectionNav({ user }) {
   });
 
   return (
-    <aside className="xl:sticky xl:top-8 xl:self-start">
+    <aside className="hidden md:block xl:sticky xl:top-8 xl:self-start">
       <div className="card overflow-hidden p-2">
         <p className="px-3 pb-2 pt-2 text-[11px] font-bold uppercase tracking-[.14em] text-neutral-400">
           Settings
