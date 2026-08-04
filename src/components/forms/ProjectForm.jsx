@@ -40,7 +40,7 @@ export default function ProjectForm({ projectId, onSuccess, onCancel, compact = 
   const [loading, setLoading] = useState(Boolean(projectId));
   const initializedChoices = useRef(false);
   const { customization, workspaceType, loading: customizationLoading } = useProjectCustomization();
-  const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, control, setValue, setError, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(projectSchema),
     defaultValues: defaults,
   });
@@ -108,6 +108,9 @@ export default function ProjectForm({ projectId, onSuccess, onCancel, compact = 
   }, [enabled, generalProject, projectId, reset, zohoProject]);
 
   async function submit(values) {
+    if (values.projectPlatform === zohoProject && !values.zohoProducts?.length) {
+      return setError("zohoProducts", { type: "manual", message: "Select at least one Zoho platform" });
+    }
     const response = await fetch(projectId ? `/api/projects/${projectId}` : "/api/projects", {
       method: projectId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
@@ -115,6 +118,7 @@ export default function ProjectForm({ projectId, onSuccess, onCancel, compact = 
     });
     const result = await response.json();
     if (!response.ok) {
+      Object.entries(result.errors || {}).forEach(([field, message]) => setError(field, { type: "server", message }));
       toast.error(result.message);
       return;
     }
@@ -166,7 +170,7 @@ export default function ProjectForm({ projectId, onSuccess, onCancel, compact = 
           {enabled("environments").length > 0 && <Field label="Environment" required error={errors.environment?.message}><FormDropdown control={control} name="environment" options={labels("environments")} /></Field>}
           <Field label="Start date" error={errors.startDate?.message}><input type="date" className="field" {...register("startDate")} /></Field>
           <Field label="Due date" error={errors.dueDate?.message}><input type="date" className="field" {...register("dueDate")} /></Field>
-          {!projectId && enabled("starterTemplates").length > 0 && <Field label="Starter template"><FormDropdown control={control} name="template" options={enabled("starterTemplates").map((item) => [item.id, item.label])} /></Field>}
+          {!projectId && enabled("starterTemplates").length > 0 && <Field label="Starter template" error={errors.template?.message}><FormDropdown control={control} name="template" options={enabled("starterTemplates").map((item) => [item.id, item.label])} /></Field>}
           {enabled("projectTypes").length > 0 && <fieldset className="md:col-span-3">
             <legend className="label">Project types</legend>
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -195,7 +199,7 @@ export default function ProjectForm({ projectId, onSuccess, onCancel, compact = 
 }
 
 function Field({ label, required, error, children }) {
-  return <label className="block"><span className="label">{label}{required && <span className="text-red-600"> *</span>}</span>{children}{error && <span className="mt-1 block text-xs text-red-600">{error}</span>}</label>;
+  return <label className="block"><span className="label">{label}{required && <span className="text-red-600"> *</span>}</span>{children}{error && <span className="mt-1 block text-xs font-medium text-red-600" role="alert">{error}</span>}</label>;
 }
 function FormDropdown({ control, name, options, multiple = false }) {
   return <Controller control={control} name={name} render={({ field }) => <Dropdown multiple={multiple} value={field.value} onChange={field.onChange} onBlur={field.onBlur} options={options} />} />;

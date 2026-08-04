@@ -12,6 +12,8 @@ import TaskCommentsPanel from "@/components/tasks/TaskCommentsPanel";
 import Dropdown from "@/components/ui/Dropdown";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
 import CommentCount from "@/components/tasks/CommentCount";
+import FieldError from "@/components/ui/FieldError";
+import { getFieldErrors, subtaskSchema } from "@/lib/validations";
 
 const emptySubtask = { title: "", description: "", status: "", priority: "Medium", dueDate: "" };
 
@@ -24,6 +26,12 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
   const [saving, setSaving] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [subtaskErrors, setSubtaskErrors] = useState({});
+
+  function updateSubtask(field, value) {
+    setSubtask((current) => ({ ...current, [field]: value }));
+    setSubtaskErrors((current) => ({ ...current, [field]: undefined, form: undefined }));
+  }
   const canCreate = permissions.includes("tasks.create") && task.isCreator;
   const canEdit = permissions.includes("tasks.edit");
   const canDelete = permissions.includes("tasks.delete");
@@ -49,15 +57,21 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
 
   async function addSubtask(event) {
     event.preventDefault();
+    const validation = getFieldErrors(subtaskSchema, { ...subtask, status: subtask.status || defaultStatus });
+    if (!validation.data) return setSubtaskErrors(validation.errors);
+    setSubtaskErrors({});
     setSaving(true);
     const response = await fetch(`/api/tasks/${taskId}/subtasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...subtask, status: subtask.status || defaultStatus }),
+      body: JSON.stringify(validation.data),
     });
     const result = await response.json();
     setSaving(false);
-    if (!response.ok) return toast.error(result.message);
+    if (!response.ok) {
+      setSubtaskErrors({ ...(result.errors || {}), form: result.message });
+      return toast.error(result.message);
+    }
     toast.success(result.message);
     setSubtask({ ...emptySubtask, status: defaultStatus });
     setShowAdd(false);
@@ -108,11 +122,12 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
 
           {showAdd && canCreate && (
             <form className="grid gap-3 border-b border-neutral-100 bg-neutral-50/70 p-4 sm:grid-cols-2 sm:p-5" onSubmit={addSubtask}>
-              <label className="sm:col-span-2"><span className="label">Subtask title</span><input className="field" required minLength={2} value={subtask.title} onChange={(event) => setSubtask({ ...subtask, title: event.target.value })} /></label>
-              {showStatus && <label><span className="label">Status</span><Dropdown value={subtask.status || defaultStatus} onChange={(status) => setSubtask({ ...subtask, status })} options={statusOptions} /></label>}
-              <label><span className="label">Priority</span><Dropdown value={subtask.priority} onChange={(priority) => setSubtask({ ...subtask, priority })} options={PRIORITIES} /></label>
-              <label><span className="label">Due date</span><input className="field" type="date" value={subtask.dueDate} onChange={(event) => setSubtask({ ...subtask, dueDate: event.target.value })} /></label>
-              <label className="sm:col-span-2"><span className="label">Description</span><textarea className="field min-h-24" value={subtask.description} onChange={(event) => setSubtask({ ...subtask, description: event.target.value })} /></label>
+              <label className="sm:col-span-2"><span className="label">Subtask title</span><input className="field" aria-invalid={Boolean(subtaskErrors.title)} value={subtask.title} onChange={(event) => updateSubtask("title", event.target.value)} /><FieldError message={subtaskErrors.title} /></label>
+              {showStatus && <label><span className="label">Status</span><Dropdown value={subtask.status || defaultStatus} onChange={(status) => updateSubtask("status", status)} options={statusOptions} /><FieldError message={subtaskErrors.status} /></label>}
+              <label><span className="label">Priority</span><Dropdown value={subtask.priority} onChange={(priority) => updateSubtask("priority", priority)} options={PRIORITIES} /><FieldError message={subtaskErrors.priority} /></label>
+              <label><span className="label">Due date</span><input className="field" aria-invalid={Boolean(subtaskErrors.dueDate)} type="date" value={subtask.dueDate} onChange={(event) => updateSubtask("dueDate", event.target.value)} /><FieldError message={subtaskErrors.dueDate} /></label>
+              <label className="sm:col-span-2"><span className="label">Description</span><textarea className="field min-h-24" aria-invalid={Boolean(subtaskErrors.description)} value={subtask.description} onChange={(event) => updateSubtask("description", event.target.value)} /><FieldError message={subtaskErrors.description} /></label>
+              <FieldError message={subtaskErrors.form} className="sm:col-span-2 text-right" />
               <div className="flex gap-2 sm:col-span-2 sm:justify-end"><button type="button" className="btn btn-secondary flex-1 sm:flex-none" onClick={() => setShowAdd(false)}>Cancel</button><button className="btn btn-primary flex-1 sm:flex-none" disabled={saving}>{saving ? "Adding…" : "Add subtask"}</button></div>
             </form>
           )}

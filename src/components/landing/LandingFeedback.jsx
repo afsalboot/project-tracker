@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, MessageSquareText, Quote, Send, Star } from "lucide-react";
 import { toast } from "sonner";
+import FieldError from "@/components/ui/FieldError";
+import { feedbackSchema, getFieldErrors } from "@/lib/validations";
 
 const emptyForm = {
   name: "",
@@ -18,6 +20,12 @@ export default function LandingFeedback() {
   const [form, setForm] = useState(emptyForm);
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined, form: undefined }));
+  }
 
   useEffect(() => {
     fetch("/api/feedback", { cache: "no-store" })
@@ -27,15 +35,24 @@ export default function LandingFeedback() {
 
   async function submit(event) {
     event.preventDefault();
+    const validation = getFieldErrors(feedbackSchema, form);
+    if (!validation.data) {
+      setErrors(validation.errors);
+      return;
+    }
+    setErrors({});
     setSending(true);
     const response = await fetch("/api/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(validation.data),
     });
     const result = await response.json();
     setSending(false);
-    if (!response.ok) return toast.error(result.message);
+    if (!response.ok) {
+      setErrors({ ...(result.errors || {}), form: result.message });
+      return toast.error(result.message);
+    }
     setForm(emptyForm);
     setSubmitted(true);
     toast.success(result.message);
@@ -89,18 +106,19 @@ export default function LandingFeedback() {
             </div>
           ) : (
             <form className="relative grid gap-5 rounded-[2rem] border border-neutral-200 bg-[#f8faf9] p-5 shadow-[0_24px_70px_-50px_rgba(15,55,42,.45)] sm:grid-cols-2 sm:p-7" onSubmit={submit}>
-              <label><span className="label">Name</span><input className="field" required minLength={2} maxLength={80} autoComplete="name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-              <label><span className="label">Email</span><input className="field" required type="email" maxLength={160} autoComplete="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></label>
-              <label className="sm:col-span-2"><span className="label">Role or organization <span className="font-normal text-neutral-400">(optional)</span></span><input className="field" maxLength={120} placeholder="Project lead at Northstar" value={form.context} onChange={(event) => setForm({ ...form, context: event.target.value })} /></label>
+              <label><span className="label">Name</span><input className="field" aria-invalid={Boolean(errors.name)} autoComplete="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} /><FieldError message={errors.name} /></label>
+              <label><span className="label">Email</span><input className="field" aria-invalid={Boolean(errors.email)} type="email" autoComplete="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} /><FieldError message={errors.email} /></label>
+              <label className="sm:col-span-2"><span className="label">Role or organization <span className="font-normal text-neutral-400">(optional)</span></span><input className="field" aria-invalid={Boolean(errors.context)} placeholder="Project lead at Northstar" value={form.context} onChange={(event) => updateField("context", event.target.value)} /><FieldError message={errors.context} /></label>
               <fieldset className="sm:col-span-2">
                 <legend className="label">Your rating</legend>
                 <div className="flex gap-1.5" aria-label={`${form.rating} out of 5 stars`}>
-                  {[1, 2, 3, 4, 5].map((rating) => <button aria-label={`${rating} star${rating === 1 ? "" : "s"}`} aria-pressed={form.rating === rating} className={`grid size-10 place-items-center rounded-xl border transition ${rating <= form.rating ? "border-amber-200 bg-amber-50 text-amber-500" : "border-neutral-200 bg-white text-neutral-300"}`} key={rating} onClick={() => setForm({ ...form, rating })} type="button"><Star size={18} fill={rating <= form.rating ? "currentColor" : "none"} /></button>)}
+                  {[1, 2, 3, 4, 5].map((rating) => <button aria-label={`${rating} star${rating === 1 ? "" : "s"}`} aria-pressed={form.rating === rating} className={`grid size-10 place-items-center rounded-xl border transition ${rating <= form.rating ? "border-amber-200 bg-amber-50 text-amber-500" : "border-neutral-200 bg-white text-neutral-300"}`} key={rating} onClick={() => updateField("rating", rating)} type="button"><Star size={18} fill={rating <= form.rating ? "currentColor" : "none"} /></button>)}
                 </div>
+                <FieldError message={errors.rating} />
               </fieldset>
-              <label className="sm:col-span-2"><span className="label">Your feedback</span><textarea className="field min-h-36" required minLength={10} maxLength={1200} placeholder="What has improved, and what should we change next?" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /><span className="mt-1 block text-right text-xs text-neutral-400">{form.message.length}/1200</span></label>
-              <label className="absolute -left-[9999px]" aria-hidden="true">Website<input tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} /></label>
-              <div className="sm:col-span-2 sm:flex sm:justify-end"><button className="btn btn-primary w-full sm:w-auto" disabled={sending}><Send size={16} />{sending ? "Sending..." : "Submit feedback"}</button></div>
+              <label className="sm:col-span-2"><span className="label">Your feedback</span><textarea className="field min-h-36" aria-invalid={Boolean(errors.message)} placeholder="What has improved, and what should we change next?" value={form.message} onChange={(event) => updateField("message", event.target.value)} /><FieldError message={errors.message} /><span className="mt-1 block text-right text-xs text-neutral-400">{form.message.length}/1200</span></label>
+              <label className="absolute -left-[9999px]" aria-hidden="true">Website<input tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => updateField("website", event.target.value)} /></label>
+              <div className="sm:col-span-2"><FieldError message={errors.form} className="mb-3 text-right" /><div className="sm:flex sm:justify-end"><button className="btn btn-primary w-full sm:w-auto" disabled={sending}><Send size={16} />{sending ? "Sending..." : "Submit feedback"}</button></div></div>
             </form>
           )}
         </div>

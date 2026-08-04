@@ -6,18 +6,46 @@ import { toast } from "sonner";
 import { CUSTOMIZATION_SECTIONS } from "@/constants/customization";
 import { PageIntro } from "@/components/ui";
 import useProjectCustomization from "@/components/settings/useProjectCustomization";
+import FieldError from "@/components/ui/FieldError";
 
 const projectKeys = ["projectStages", "environments", "starterTemplates", "projectTypes", "projectPlatforms", "zohoPlatforms"];
 const taskKeys = ["taskStatuses", "environments"];
+const optionLimits = { starterTemplates: 30, projectPlatforms: 20 };
+
+function customizationErrors(customization) {
+  const errors = {};
+  for (const [key, options] of Object.entries(customization)) {
+    const limit = optionLimits[key] || 50;
+    if (options.length > limit) errors[key] = `Use no more than ${limit} options`;
+    const counts = new Map();
+    options.forEach((item) => {
+      const normalized = item.label.trim().toLowerCase();
+      if (normalized) counts.set(normalized, (counts.get(normalized) || 0) + 1);
+    });
+    options.forEach((item) => {
+      const field = `${key}.${item.id}.label`;
+      if (!item.label.trim()) errors[field] = "Enter an option name";
+      else if (item.label.trim().length > 80) errors[field] = "Use no more than 80 characters";
+      else if ((counts.get(item.label.trim().toLowerCase()) || 0) > 1) errors[field] = "Option names must be unique";
+      if (key === "starterTemplates") {
+        if ((item.tasks || []).length > 100) errors[`${key}.${item.id}.tasks`] = "Use no more than 100 template tasks";
+        else if ((item.tasks || []).some((task) => task.length > 240)) errors[`${key}.${item.id}.tasks`] = "Each task must use no more than 240 characters";
+      }
+    });
+  }
+  return errors;
+}
 
 export default function ProjectCustomization() {
   const { customization, setCustomization, loading } = useProjectCustomization();
   const [area, setArea] = useState("project");
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(null);
+  const [errors, setErrors] = useState({});
   const keys = area === "project" ? projectKeys : taskKeys;
 
   function change(key, id, patch) {
+    setErrors((current) => ({ ...current, [`${key}.${id}.${Object.keys(patch)[0]}`]: undefined, [key]: undefined, form: undefined }));
     setCustomization((current) => ({
       ...current,
       [key]: current[key].map((item) => item.id === id ? { ...item, ...patch } : item),
@@ -62,6 +90,12 @@ export default function ProjectCustomization() {
   }
 
   async function save() {
+    const validationErrors = customizationErrors(customization);
+    if (Object.keys(validationErrors).length) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});
     setSaving(true);
     try {
       const response = await fetch("/api/workspace/customization", {
@@ -70,7 +104,10 @@ export default function ProjectCustomization() {
         body: JSON.stringify(customization),
       });
       const result = await response.json();
-      if (!response.ok) return toast.error(result.message);
+      if (!response.ok) {
+        setErrors({ form: result.message });
+        return toast.error(result.message);
+      }
       setCustomization(result.data.customization);
       toast.success(result.message);
     } finally {
@@ -106,18 +143,20 @@ export default function ProjectCustomization() {
                 >
                   <div className="grid grid-cols-[32px_minmax(0,1fr)_34px_34px] items-center gap-1.5">
                     <button type="button" draggable onDragStart={() => setDragging({ key, id: item.id })} onDragEnd={() => setDragging(null)} className="grid size-8 cursor-grab place-items-center rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 active:cursor-grabbing" aria-label={`Move ${item.label}`}><GripVertical size={17} /></button>
-                    <input className="min-h-9 min-w-0 rounded-lg border-0 bg-transparent px-2 text-sm font-medium outline-none transition focus:bg-neutral-50 focus:ring-2 focus:ring-emerald-100" value={item.label} aria-label={`${title} option name`} onChange={(event) => change(key, item.id, { label: event.target.value })} />
+                    <input className="min-h-9 min-w-0 rounded-lg border-0 bg-transparent px-2 text-sm font-medium outline-none transition focus:bg-neutral-50 focus:ring-2 focus:ring-emerald-100" aria-invalid={Boolean(errors[`${key}.${item.id}.label`])} value={item.label} aria-label={`${title} option name`} onChange={(event) => change(key, item.id, { label: event.target.value })} />
                     <button type="button" className="grid size-8 place-items-center rounded-lg text-emerald-700 transition hover:bg-emerald-50" onClick={() => add(key, item.id)} aria-label={`Add option after ${item.label}`} title="Add below"><Plus size={16} /></button>
                     <button type="button" className="grid size-8 place-items-center rounded-lg text-neutral-400 transition hover:bg-red-50 hover:text-red-600" onClick={() => remove(key, item.id)} aria-label={`Delete ${item.label}`} title="Delete"><Minus size={16} /></button>
                   </div>
-                  {key === "starterTemplates" && <textarea className="mt-2 min-h-24 w-full rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 text-xs leading-5 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100" value={(item.tasks || []).join("\n")} placeholder="Template tasks — one per line" onChange={(event) => change(key, item.id, { tasks: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean) })} />}
+                  <FieldError message={errors[`${key}.${item.id}.label`]} className="px-10" />
+                  {key === "starterTemplates" && <><textarea className="mt-2 min-h-24 w-full rounded-lg border border-neutral-200 bg-neutral-50/70 p-3 text-xs leading-5 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100" aria-invalid={Boolean(errors[`${key}.${item.id}.tasks`])} value={(item.tasks || []).join("\n")} placeholder="Template tasks — one per line" onChange={(event) => change(key, item.id, { tasks: event.target.value.split("\n").map((value) => value.trim()).filter(Boolean) })} /><FieldError message={errors[`${key}.${item.id}.tasks`]} /></>}
                   </div>
               )) : <button type="button" className="flex min-h-24 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 text-sm font-semibold text-neutral-500 transition hover:border-emerald-400 hover:bg-emerald-50/50 hover:text-emerald-700" onClick={() => add(key)}><Plus size={16} />Add first option</button>}
             </div>
+            <FieldError message={errors[key]} className="px-4 pb-4" />
           </section>
         ))}
         </div>
-        <div className="sticky bottom-4 z-10 flex justify-end"><button className="btn btn-primary shadow-lg" disabled={saving} onClick={save}><Save size={16} />{saving ? "Saving…" : "Save customization"}</button></div>
+        <div className="sticky bottom-4 z-10 flex flex-col items-end gap-2"><FieldError message={errors.form} /><button className="btn btn-primary shadow-lg" disabled={saving} onClick={save}><Save size={16} />{saving ? "Saving…" : "Save customization"}</button></div>
       </>}
     </>
   );

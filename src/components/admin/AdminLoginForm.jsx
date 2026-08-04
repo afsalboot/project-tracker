@@ -4,25 +4,32 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LockKeyhole, PanelsTopLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import FieldError from "@/components/ui/FieldError";
+import { getFieldErrors, loginSchema } from "@/lib/validations";
 
 export default function AdminLoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState({});
 
   async function submit(event) {
     event.preventDefault();
     if (busy) return;
+    const validation = getFieldErrors(loginSchema, { email, password });
+    if (!validation.data) return setErrors(validation.errors);
+    setErrors({});
     setBusy(true);
     try {
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(validation.data),
       });
       const result = await response.json();
       if (!response.ok) {
+        setErrors({ ...(result.errors || {}), form: result.message });
         toast.error(result.message);
         return;
       }
@@ -30,6 +37,7 @@ export default function AdminLoginForm() {
       router.replace("/admin");
       router.refresh();
     } catch {
+      setErrors({ form: "Unable to sign in. Please try again." });
       toast.error("Unable to sign in. Please try again.");
     } finally {
       setBusy(false);
@@ -61,12 +69,15 @@ export default function AdminLoginForm() {
           <form className="mt-7 space-y-4" onSubmit={submit}>
             <label className="block">
               <span className="label">Administrator email</span>
-              <input className="field" type="email" autoComplete="username" required value={email} onChange={(event) => setEmail(event.target.value)} />
+              <input className="field" aria-invalid={Boolean(errors.email)} type="email" autoComplete="username" value={email} onChange={(event) => { setEmail(event.target.value); setErrors((current) => ({ ...current, email: undefined, form: undefined })); }} />
+              <FieldError message={errors.email} />
             </label>
             <label className="block">
               <span className="label">Password</span>
-              <input className="field" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+              <input className="field" aria-invalid={Boolean(errors.password)} type="password" autoComplete="current-password" value={password} onChange={(event) => { setPassword(event.target.value); setErrors((current) => ({ ...current, password: undefined, form: undefined })); }} />
+              <FieldError message={errors.password} />
             </label>
+            <FieldError message={errors.form} />
             <button className="btn btn-primary mt-2 w-full" disabled={busy}>{busy ? "Verifying..." : "Open admin portal"}</button>
           </form>
           <a className="mt-5 inline-flex text-sm font-semibold text-emerald-700 hover:underline" href="/login">Return to workspace sign in</a>

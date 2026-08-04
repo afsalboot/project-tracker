@@ -11,7 +11,7 @@ import Dropdown from "@/components/ui/Dropdown";
 export default function AuthForm() {
   const [setup, setSetup] = useState(false);
   const schema = setup ? registerSchema : loginSchema;
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, control, setError, clearErrors, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { name: "", email: "", password: "", workspaceName: "", workspaceType: "personal" },
   });
@@ -24,6 +24,9 @@ export default function AuthForm() {
     });
     const result = await response.json();
     if (!response.ok) {
+      const serverErrors = result.errors || {};
+      Object.entries(serverErrors).forEach(([field, message]) => setError(field, { type: "server", message }));
+      if (!Object.keys(serverErrors).length) setError("root", { type: "server", message: result.message });
       toast.error(result.message);
       return;
     }
@@ -54,9 +57,10 @@ export default function AuthForm() {
             {setup && <><Field label="Name" error={errors.name?.message}><input className="field" autoComplete="name" {...register("name")} /></Field><Field label="Workspace type" error={errors.workspaceType?.message}><Controller control={control} name="workspaceType" render={({ field }) => <Dropdown value={field.value} onChange={field.onChange} onBlur={field.onBlur} options={[["personal", "Personal"], ["organization", "Organization"], ["team", "Team"]]} />} /></Field><Field label="Workspace name" error={errors.workspaceName?.message}><input className="field" placeholder="My workspace" {...register("workspaceName")} /></Field></>}
             <Field label="Email" error={errors.email?.message}><input className="field" type="email" autoComplete="email" {...register("email")} /></Field>
             <Field label="Password" error={errors.password?.message}><input className="field" type="password" autoComplete={setup ? "new-password" : "current-password"} {...register("password")} /></Field>
+            {errors.root?.message && <p className="text-xs font-medium text-red-600" role="alert">{errors.root.message}</p>}
             <button className="btn btn-primary w-full" disabled={isSubmitting}>{isSubmitting ? "Please wait…" : setup ? "Create workspace" : "Sign in"}</button>
           </form>
-          <button className="mt-5 text-sm font-medium text-emerald-700 hover:underline" onClick={() => setSetup((value) => !value)}>
+          <button className="mt-5 text-sm font-medium text-emerald-700 hover:underline" onClick={() => { clearErrors(); setSetup((value) => !value); }}>
             {setup ? "Already have an account? Sign in" : "New here? Create an account"}
           </button>
         </div>
@@ -66,5 +70,5 @@ export default function AuthForm() {
 }
 
 function Field({ label, error, children }) {
-  return <label className="block"><span className="label">{label}</span>{children}{error && <span className="mt-1 block text-xs text-red-600">{error}</span>}</label>;
+  return <label className="block"><span className="label">{label}</span>{children}{error && <span className="mt-1 block text-xs font-medium text-red-600" role="alert">{error}</span>}</label>;
 }

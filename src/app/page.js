@@ -28,12 +28,14 @@ export default async function Home() {
         </Link>
       </nav>
 
-      <section className="mx-auto grid max-w-7xl items-center gap-14 px-5 pb-20 pt-12 sm:px-8 lg:grid-cols-[.88fr_1.12fr] lg:px-12 lg:pb-28 lg:pt-20">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[.22em] text-emerald-800">Projects without the noise</p>
-          <h1 className="mt-6 max-w-2xl text-5xl font-semibold leading-[1.02] tracking-[-.055em] sm:text-6xl">Keep the work visible. Keep ownership clear.</h1>
+      <section className="hero-section relative isolate mx-auto grid max-w-7xl items-center gap-14 overflow-hidden px-5 pb-20 pt-12 sm:px-8 lg:grid-cols-[.88fr_1.12fr] lg:px-12 lg:pb-28 lg:pt-20">
+        <span className="hero-glow hero-glow-one" aria-hidden="true" />
+        <span className="hero-glow hero-glow-two" aria-hidden="true" />
+        <div className="relative z-10">
+          <p className="hero-enter hero-enter-one text-xs font-semibold uppercase tracking-[.22em] text-emerald-800">Projects without the noise</p>
+          <h1 className="hero-enter hero-enter-two mt-6 max-w-2xl text-5xl font-semibold leading-[1.02] tracking-[-.055em] sm:text-6xl">Keep the work visible. Keep ownership clear.</h1>
           <p className="mt-7 max-w-xl text-base leading-7 text-neutral-600 sm:text-lg">One focused workspace for projects, tasks, subtasks, comments, and delivery context—built for personal work, teams, and organizations.</p>
-          <div className="mt-9 flex flex-wrap items-center gap-3">
+          <div className="hero-enter hero-enter-four mt-9 flex flex-wrap items-center gap-3">
             <Link href={workspaceHref} className="inline-flex items-center gap-2 rounded-full bg-[#174c3b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#103b2e]">
               {user ? "Continue working" : "Enter your workspace"} <ArrowRight size={16} />
             </Link>
@@ -41,9 +43,9 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="relative">
+        <div className="hero-preview-enter relative z-10">
           <div className="absolute -inset-4 rounded-[2.5rem] border border-emerald-900/10" />
-          <div className="relative overflow-hidden rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-[0_30px_80px_-45px_rgba(15,55,42,.45)] sm:p-6">
+          <div className="hero-preview-float relative overflow-hidden rounded-[2rem] border border-neutral-200 bg-white p-4 shadow-[0_30px_80px_-45px_rgba(15,55,42,.45)] sm:p-6">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-5">
               <div><p className="text-xs font-semibold uppercase tracking-[.16em] text-emerald-700">Current focus</p><h2 className="mt-1 text-xl font-semibold">A calmer delivery view</h2></div>
               <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">3 in motion</span>
@@ -77,7 +79,7 @@ export default async function Home() {
 function PreviewTask({ title, meta, status, active }) {
   return (
     <div className={`flex items-center gap-3 rounded-2xl border p-4 ${active ? "border-emerald-200 bg-emerald-50/60" : "border-neutral-200"}`}>
-      <span className={`grid size-9 shrink-0 place-items-center rounded-full ${active ? "bg-emerald-700 text-white" : "bg-neutral-100 text-neutral-500"}`}><Check size={16} /></span>
+      <span className={`grid size-9 shrink-0 place-items-center rounded-full ${active ? "hero-active-pulse bg-emerald-700 text-white" : "bg-neutral-100 text-neutral-500"}`}><Check size={16} /></span>
       <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{title}</p><p className="mt-1 text-xs text-neutral-500">{meta}</p></div>
       <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-neutral-600">{status}</span>
     </div>

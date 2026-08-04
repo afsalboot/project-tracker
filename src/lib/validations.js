@@ -3,6 +3,8 @@ import {
   PRIORITIES,
 } from "@/constants/project";
 import { DEPLOYMENT_STATUSES } from "@/constants/task";
+import { WORKSPACE_PERMISSIONS } from "@/constants/permissions";
+import { DEFAULT_ROLE_COLOR, ROLE_COLOR_PATTERN, ROLE_ICON_KEYS } from "@/constants/roles";
 
 const optionalText = (max = 10000) =>
   z.string().trim().max(max).optional().or(z.literal(""));
@@ -27,9 +29,9 @@ export const usernameSchema = z.string()
   .regex(/^[a-z0-9._-]+$/, "Use lowercase letters, numbers, dots, hyphens, or underscores");
 
 export const profileSchema = z.object({
-  name: z.string().trim().min(2).max(80),
+  name: z.string().trim().min(2, "Enter at least 2 characters").max(80, "Use no more than 80 characters"),
   username: usernameSchema.or(z.literal("")),
-  email: z.string().trim().toLowerCase().email(),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
 });
 
 export const passwordChangeSchema = z.object({
@@ -49,9 +51,59 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   password: z.string().min(1, "Password is required").max(128),
 });
+
+export const feedbackSchema = z.object({
+  name: z.string().trim().min(2, "Enter at least 2 characters").max(80, "Use no more than 80 characters"),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(160),
+  context: z.string().trim().max(120, "Use no more than 120 characters").optional().default(""),
+  message: z.string().trim().min(10, "Enter at least 10 characters").max(1200, "Use no more than 1200 characters"),
+  rating: z.coerce.number().int().min(1, "Choose a rating").max(5),
+  website: z.string().max(200).optional().default(""),
+});
+
+export const memberSchema = z.object({
+  name: z.string().trim().min(2, "Enter at least 2 characters").max(80, "Use no more than 80 characters"),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+  password: strongPasswordSchema,
+  role: z.string().trim().min(1, "Select a saved role").max(64),
+});
+
+export const workspaceSchema = z.object({
+  name: z.string().trim().min(2, "Enter at least 2 characters").max(120, "Use no more than 120 characters"),
+  type: z.enum(["personal", "organization", "team"], { message: "Select a workspace mode" }),
+});
+
+const allowedPermissions = WORKSPACE_PERMISSIONS.map((permission) => permission.key);
+export const roleSchema = z.object({
+  name: z.string().trim().min(2, "Enter at least 2 characters").max(60, "Use no more than 60 characters"),
+  icon: z.enum(ROLE_ICON_KEYS, { message: "Choose a valid role icon" }).default("review"),
+  color: z.string().regex(ROLE_COLOR_PATTERN, "Choose a valid role color").default(DEFAULT_ROLE_COLOR),
+  permissions: z.array(z.enum(allowedPermissions)).default([]),
+});
+
+export const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password").max(128),
+  newPassword: strongPasswordSchema,
+  confirmPassword: z.string().min(1, "Confirm your new password").max(128),
+}).refine((value) => value.currentPassword !== value.newPassword, {
+  path: ["newPassword"],
+  message: "Choose a password different from your current password",
+}).refine((value) => value.newPassword === value.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "New passwords do not match",
+});
+
+export function getFieldErrors(schema, values) {
+  const result = schema.safeParse(values);
+  if (result.success) return { data: result.data, errors: {} };
+  return {
+    data: null,
+    errors: Object.fromEntries(result.error.issues.map((issue) => [String(issue.path[0] || "form"), issue.message])),
+  };
+}
 
 export const projectSchema = z
   .object({

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { AtSign, MessageSquare, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import FieldError from "@/components/ui/FieldError";
+import { getFieldErrors, taskCommentSchema } from "@/lib/validations";
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -63,6 +65,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
   const [saving, setSaving] = useState(false);
   const [mentionSearch, setMentionSearch] = useState(null);
   const [selectedMentions, setSelectedMentions] = useState([]);
+  const [commentError, setCommentError] = useState("");
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
   const textareaRef = useRef(null);
   const mentionListId = useId();
@@ -107,6 +110,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
   }
 
   function updateBody(value, cursor) {
+    setCommentError("");
     if (editing) setEditing({ ...editing, body: value });
     else setDraft(value);
     updateMentionSearch(value, cursor);
@@ -148,19 +152,25 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
   async function save(event) {
     event.preventDefault();
     const commentText = editing ? editing.body : draft;
-    if (!commentText.trim()) return;
+    if (!commentText.trim()) return setCommentError("Enter a comment");
     const mentionPrefix = selectedMentions.map((member) => `@${member.username || member.name.trim().replace(/\s+/g, ".")}`).join(" ");
     const body = mentionPrefix ? `${mentionPrefix}\n${commentText.trimStart()}` : commentText;
+    const validation = getFieldErrors(taskCommentSchema, { body });
+    if (!validation.data) return setCommentError(validation.errors.body);
+    setCommentError("");
     setSaving(true);
     const url = editing ? `/api/tasks/${taskId}/comments/${editing._id}` : `/api/tasks/${taskId}/comments`;
     const response = await fetch(url, {
       method: editing ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify(validation.data),
     });
     const result = await response.json();
     setSaving(false);
-    if (!response.ok) return toast.error(result.message);
+    if (!response.ok) {
+      setCommentError(result.errors?.body || result.message);
+      return toast.error(result.message);
+    }
     toast.success(result.message);
     setDraft("");
     setEditing(null);
@@ -217,6 +227,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
               <AtSign size={12} className="shrink-0 text-neutral-400" />
             </button>) : <p className="px-3 py-4 text-center text-sm text-neutral-500">No matching users</p>}
           </div>}
+          <FieldError message={commentError} />
         </label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-[11px] leading-4 text-neutral-400">{workspaceType === "personal" ? "Keep task context and progress notes together." : "Use @name, @username, or @email to notify a workspace member."}</p><div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">{editing && <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setMentionSearch(null); setSelectedMentions([]); }}>Cancel</button>}<button className={`btn btn-primary ${editing ? "" : "col-span-2 sm:col-span-1"}`} disabled={saving || !(editing ? editing.body : draft).trim()}>{saving ? "Saving…" : editing ? "Save comment" : "Comment"}</button></div></div>
       </form> : <p className="mt-4 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">Read-only task. Only the task creator can add or change comments.</p>}

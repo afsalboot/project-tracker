@@ -1,4 +1,3 @@
-import { z } from "zod";
 import {
   PERMISSION_GROUPS,
   WORKSPACE_PERMISSIONS,
@@ -11,17 +10,9 @@ import {
 } from "@/lib/workspace";
 import User from "@/models/User";
 import Workspace from "@/models/Workspace";
-import { DEFAULT_ROLE_COLOR, ROLE_COLOR_PATTERN, ROLE_ICON_KEYS } from "@/constants/roles";
+import { roleSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
-
-const allowedPermissions = WORKSPACE_PERMISSIONS.map((permission) => permission.key);
-const roleSchema = z.object({
-  name: z.string().trim().min(2).max(60),
-  icon: z.enum(ROLE_ICON_KEYS).default("review"),
-  color: z.string().regex(ROLE_COLOR_PATTERN).default(DEFAULT_ROLE_COLOR),
-  permissions: z.array(z.enum(allowedPermissions)).default([]),
-});
 
 export async function GET(_request, { params }) {
   try {

@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { fail, handleApiError, ok } from "@/lib/api-response";
 import { requireApiUser } from "@/lib/server";
 import {
@@ -9,13 +8,9 @@ import {
 import User from "@/models/User";
 import Workspace from "@/models/Workspace";
 import { WORKSPACE_PERMISSIONS } from "@/constants/permissions";
+import { workspaceSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
-
-const workspaceSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  type: z.enum(["personal", "organization", "team"]),
-});
 
 export async function GET() {
   try {

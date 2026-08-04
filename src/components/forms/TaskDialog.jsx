@@ -21,7 +21,7 @@ const defaults = {
 
 export default function TaskDialog({ open, onClose, projectId, task, projects = [], onSaved }) {
   const { customization, loading: customizationLoading } = useProjectCustomization();
-  const { register, handleSubmit, reset, control, setValue, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, control, setValue, setError, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(taskSchema),
     defaultValues: defaults,
   });
@@ -63,6 +63,10 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
 
   async function submit(values) {
     const targetProject = projectId || values.projectId;
+    if (!targetProject) return setError("projectId", { type: "manual", message: "Select a project" });
+    if (values.status === blockedStatus && !values.blockerReason?.trim()) {
+      return setError("blockerReason", { type: "manual", message: "Enter why this task is blocked" });
+    }
     const url = task?._id ? `/api/tasks/${task._id}` : `/api/projects/${targetProject}/tasks`;
     const response = await fetch(url, {
       method: task?._id ? "PUT" : "POST",
@@ -70,7 +74,10 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
       body: JSON.stringify(values),
     });
     const result = await response.json();
-    if (!response.ok) return toast.error(result.message);
+    if (!response.ok) {
+      Object.entries(result.errors || {}).forEach(([field, message]) => setError(field, { type: "server", message }));
+      return toast.error(result.message);
+    }
     toast.success(result.message);
     onSaved?.();
     onClose();
@@ -115,13 +122,13 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
                 </Field>
               )}
               {optionLabels("taskStatuses").length > 0 && <div className="md:col-span-2">
-                <Field label="Status" required>
+                <Field label="Status" required error={errors.status?.message}>
                   <input type="hidden" {...register("status")} />
                   <PillGroup values={optionLabels("taskStatuses")} value={status} onChange={(value) => setValue("status", value, { shouldDirty: true, shouldValidate: true })} />
                 </Field>
               </div>}
               <div className="md:col-span-2">
-                <Field label="Priority" required>
+                <Field label="Priority" required error={errors.priority?.message}>
                   <input type="hidden" {...register("priority")} />
                   <PillGroup values={PRIORITIES} value={priority} onChange={(value) => setValue("priority", value, { shouldDirty: true, shouldValidate: true })} />
                 </Field>
@@ -129,35 +136,35 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
               <Field label="Due date" error={errors.dueDate?.message}>
                 <input type="date" className="field" {...register("dueDate")} />
               </Field>
-              {optionLabels("environments").length > 0 && <Field label="Environment">
+              {optionLabels("environments").length > 0 && <Field label="Environment" error={errors.environment?.message}>
                 <input type="hidden" {...register("environment")} />
                 <PillGroup values={optionLabels("environments")} value={environment} onChange={(value) => setValue("environment", value, { shouldDirty: true, shouldValidate: true })} />
               </Field>}
-              <Field label="Estimated minutes"><input type="number" min="0" className="field" {...register("estimatedMinutes")} /></Field>
-              <Field label="Actual minutes"><input type="number" min="0" className="field" {...register("actualMinutes")} /></Field>
-              <div className="md:col-span-2"><Field label="Description"><textarea className="field" {...register("description")} /></Field></div>
-              {optionLabels("taskStatuses").length > 0 && status === blockedStatus && <div className="rounded-xl border border-red-200 bg-red-50 p-4 md:col-span-2"><Field label="Blocker reason" required><textarea className="field !border-red-200" {...register("blockerReason")} /></Field></div>}
+              <Field label="Estimated minutes" error={errors.estimatedMinutes?.message}><input type="number" min="0" className="field" {...register("estimatedMinutes")} /></Field>
+              <Field label="Actual minutes" error={errors.actualMinutes?.message}><input type="number" min="0" className="field" {...register("actualMinutes")} /></Field>
+              <div className="md:col-span-2"><Field label="Description" error={errors.description?.message}><textarea className="field" {...register("description")} /></Field></div>
+              {optionLabels("taskStatuses").length > 0 && status === blockedStatus && <div className="rounded-xl border border-red-200 bg-red-50 p-4 md:col-span-2"><Field label="Blocker reason" required error={errors.blockerReason?.message}><textarea className="field !border-red-200" {...register("blockerReason")} /></Field></div>}
             </div>
 
             <details className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4">
               <summary className="cursor-pointer font-semibold">Zoho technical details</summary>
               <div className="mt-5 grid gap-5 md:grid-cols-2">
-                <Field label="Function name"><input className="field font-mono" {...register("functionName")} /></Field>
-                <Field label="Workflow name"><input className="field font-mono" {...register("workflowName")} /></Field>
-                <Field label="Module API name"><input className="field font-mono" {...register("moduleApiName")} /></Field>
-                <Field label="Field API names"><input className="field font-mono" placeholder="Email, Deal_Name, Stage" key={(fieldApiNames || []).join(",")} defaultValue={(fieldApiNames || []).join(", ")} onBlur={(event) => setValue("fieldApiNames", event.target.value.split(",").map((value) => value.trim()).filter(Boolean), { shouldValidate: true })} /></Field>
-                <Field label="Webhook event"><input className="field font-mono" {...register("webhookEvent")} /></Field>
-                <Field label="Zoho connection name"><input className="field font-mono" {...register("connectionName")} /></Field>
+                <Field label="Function name" error={errors.functionName?.message}><input className="field font-mono" {...register("functionName")} /></Field>
+                <Field label="Workflow name" error={errors.workflowName?.message}><input className="field font-mono" {...register("workflowName")} /></Field>
+                <Field label="Module API name" error={errors.moduleApiName?.message}><input className="field font-mono" {...register("moduleApiName")} /></Field>
+                <Field label="Field API names" error={errors.fieldApiNames?.message}><input className="field font-mono" placeholder="Email, Deal_Name, Stage" key={(fieldApiNames || []).join(",")} defaultValue={(fieldApiNames || []).join(", ")} onBlur={(event) => setValue("fieldApiNames", event.target.value.split(",").map((value) => value.trim()).filter(Boolean), { shouldValidate: true })} /></Field>
+                <Field label="Webhook event" error={errors.webhookEvent?.message}><input className="field font-mono" {...register("webhookEvent")} /></Field>
+                <Field label="Zoho connection name" error={errors.connectionName?.message}><input className="field font-mono" {...register("connectionName")} /></Field>
                 <div className="md:col-span-2">
-                  <Field label="Deployment status">
+                  <Field label="Deployment status" error={errors.deploymentStatus?.message}>
                     <input type="hidden" {...register("deploymentStatus")} />
                     <PillGroup values={DEPLOYMENT_STATUSES} value={deploymentStatus} onChange={(value) => setValue("deploymentStatus", value, { shouldDirty: true, shouldValidate: true })} />
                   </Field>
                 </div>
-                <div className="md:col-span-2"><Field label="Technical notes"><textarea className="field min-h-36 font-mono text-xs" {...register("technicalNotes")} /></Field></div>
-                <div className="md:col-span-2"><Field label="Testing result"><textarea className="field font-mono text-xs" {...register("testResult")} /></Field></div>
-                <div className="md:col-span-2"><Field label="Test payload"><textarea className="field min-h-44 font-mono text-xs" {...register("testPayload")} /></Field></div>
-                <div className="md:col-span-2"><Field label="Error logs"><textarea className="field min-h-44 font-mono text-xs" {...register("errorLogs")} /></Field></div>
+                <div className="md:col-span-2"><Field label="Technical notes" error={errors.technicalNotes?.message}><textarea className="field min-h-36 font-mono text-xs" {...register("technicalNotes")} /></Field></div>
+                <div className="md:col-span-2"><Field label="Testing result" error={errors.testResult?.message}><textarea className="field font-mono text-xs" {...register("testResult")} /></Field></div>
+                <div className="md:col-span-2"><Field label="Test payload" error={errors.testPayload?.message}><textarea className="field min-h-44 font-mono text-xs" {...register("testPayload")} /></Field></div>
+                <div className="md:col-span-2"><Field label="Error logs" error={errors.errorLogs?.message}><textarea className="field min-h-44 font-mono text-xs" {...register("errorLogs")} /></Field></div>
               </div>
             </details>
           </div>
@@ -173,7 +180,7 @@ export default function TaskDialog({ open, onClose, projectId, task, projects = 
 }
 
 function Field({ label, required, error, children }) {
-  return <label className="block"><span className="label">{label}{required && <span className="text-red-600"> *</span>}</span>{children}{error && <span className="mt-1 block text-xs text-red-600">{error}</span>}</label>;
+  return <label className="block"><span className="label">{label}{required && <span className="text-red-600"> *</span>}</span>{children}{error && <span className="mt-1 block text-xs font-medium text-red-600" role="alert">{error}</span>}</label>;
 }
 
 function PillGroup({ values, value, onChange }) {

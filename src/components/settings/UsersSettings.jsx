@@ -9,6 +9,8 @@ import RoleIcon from "@/components/roles/RoleIcon";
 import { SettingsSkeleton, useWorkspaceData } from "./useWorkspaceData";
 import SettingsModal from "./SettingsModal";
 import Dropdown from "@/components/ui/Dropdown";
+import FieldError from "@/components/ui/FieldError";
+import { getFieldErrors, memberSchema } from "@/lib/validations";
 
 const emptyUser = { name: "", email: "", password: "", role: "member" };
 
@@ -18,6 +20,12 @@ export default function UsersSettings() {
   const [user, setUser] = useState(emptyUser);
   const [saving, setSaving] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null);
+  const [errors, setErrors] = useState({});
+
+  function updateUser(field, value) {
+    setUser((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined, form: undefined }));
+  }
 
   async function addUser(event) {
     event.preventDefault();
@@ -25,19 +33,29 @@ export default function UsersSettings() {
       ? user.role
       : roles[0]?.key;
     if (!selectedRole) {
-      return toast.error("Create an assignable role before adding a user.");
+      setErrors({ role: "Create an assignable role before adding a user." });
+      return;
     }
+    const validation = getFieldErrors(memberSchema, { ...user, role: selectedRole });
+    if (!validation.data) return setErrors(validation.errors);
+    setErrors({});
     setSaving(true);
     const response = await fetch("/api/workspace/members", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...user, role: selectedRole }),
+      body: JSON.stringify(validation.data),
     });
     const result = await response.json();
     setSaving(false);
-    if (!response.ok) return toast.error(result.message);
+    if (!response.ok) {
+      const serverErrors = result.errors || {};
+      const emailConflict = /email|account/i.test(result.message) ? { email: result.message } : {};
+      setErrors({ ...serverErrors, ...emailConflict, form: Object.keys(serverErrors).length || emailConflict.email ? undefined : result.message });
+      return toast.error(result.message);
+    }
     toast.success(result.message);
     setUser(emptyUser);
+    setErrors({});
     setShowAdd(false);
     reload();
   }
@@ -100,7 +118,7 @@ export default function UsersSettings() {
 
       <SettingsModal
         open={showAdd && canCreate}
-        onClose={() => !saving && setShowAdd(false)}
+        onClose={() => { if (!saving) { setShowAdd(false); setErrors({}); } }}
         title="Add workspace user"
         description="Create secure sign-in details and assign one of your saved roles."
         labelledBy="add-user-title"
@@ -111,16 +129,18 @@ export default function UsersSettings() {
             <span className="grid size-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><UserRoundPlus size={19} /></span>
             <div><h3 className="font-semibold">Account access</h3><p className="text-xs text-neutral-500">The user can sign in with this email and temporary password.</p></div>
           </div>
-          <label><span className="label">Name</span><input className="field" required value={user.name} onChange={(event) => setUser({ ...user, name: event.target.value })} /></label>
-          <label><span className="label">Email</span><input className="field" type="email" required value={user.email} onChange={(event) => setUser({ ...user, email: event.target.value })} /></label>
-          <label><span className="label">Temporary password</span><input className="field" type="password" minLength="8" maxLength="128" autoComplete="new-password" required value={user.password} onChange={(event) => setUser({ ...user, password: event.target.value })} /><span className="mt-1 block text-xs text-neutral-500">At least 8 characters with uppercase, lowercase, and a number.</span></label>
+          <label><span className="label">Name</span><input className="field" aria-invalid={Boolean(errors.name)} value={user.name} onChange={(event) => updateUser("name", event.target.value)} /><FieldError message={errors.name} /></label>
+          <label><span className="label">Email</span><input className="field" aria-invalid={Boolean(errors.email)} type="email" value={user.email} onChange={(event) => updateUser("email", event.target.value)} /><FieldError message={errors.email} /></label>
+          <label><span className="label">Temporary password</span><input className="field" aria-invalid={Boolean(errors.password)} type="password" autoComplete="new-password" value={user.password} onChange={(event) => updateUser("password", event.target.value)} /><FieldError message={errors.password} /><span className="mt-1 block text-xs text-neutral-500">At least 8 characters with uppercase, lowercase, and a number.</span></label>
           <div>
             <span className="label">Saved role</span>
-            <Dropdown value={selectedRole} onChange={(role) => setUser({ ...user, role })} options={roles.map((role) => ({ value: role.key, label: role.name, icon: <RoleIcon role={role} size={15} /> }))} />
+            <Dropdown value={selectedRole} onChange={(role) => updateUser("role", role)} options={roles.map((role) => ({ value: role.key, label: role.name, icon: <RoleIcon role={role} size={15} /> }))} />
+            <FieldError message={errors.role} />
           </div>
           </div>
           <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-100 bg-neutral-50/70 p-4 sm:flex-row sm:justify-end">
-            <button type="button" className="btn btn-secondary" disabled={saving} onClick={() => setShowAdd(false)}>Cancel</button>
+            <button type="button" className="btn btn-secondary" disabled={saving} onClick={() => { setShowAdd(false); setErrors({}); }}>Cancel</button>
+            <FieldError message={errors.form} className="self-center" />
             <button className="btn btn-primary" disabled={saving || !selectedRole}>{saving ? "Adding..." : "Add user"}</button>
           </footer>
         </form>

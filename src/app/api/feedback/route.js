@@ -1,19 +1,10 @@
-import { z } from "zod";
 import { connectDb } from "@/lib/db";
 import { fail, handleApiError, ok } from "@/lib/api-response";
 import { enforcePersistentRateLimit } from "@/lib/security";
 import Feedback from "@/models/Feedback";
+import { feedbackSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
-
-const feedbackSchema = z.object({
-  name: z.string().trim().min(2).max(80),
-  email: z.string().trim().toLowerCase().email().max(160),
-  context: z.string().trim().max(120).optional().default(""),
-  message: z.string().trim().min(10).max(1200),
-  rating: z.coerce.number().int().min(1).max(5),
-  website: z.string().max(200).optional().default(""),
-});
 
 export async function GET() {
   try {

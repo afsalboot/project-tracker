@@ -17,6 +17,8 @@ import { PageIntro } from "@/components/ui";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import RoleIcon from "@/components/roles/RoleIcon";
 import { ROLE_ICON_OPTIONS } from "@/constants/roles";
+import FieldError from "@/components/ui/FieldError";
+import { getFieldErrors, roleSchema } from "@/lib/validations";
 
 const groupIcons = {
   visibility: Eye,
@@ -82,6 +84,7 @@ function RoleEditor({ role, groups, permissions, canManage, canEditOwnerIcon }) 
   });
   const [saving, setSaving] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [errors, setErrors] = useState({});
 
   function togglePermission(key) {
     if (!editable) return;
@@ -107,15 +110,21 @@ function RoleEditor({ role, groups, permissions, canManage, canEditOwnerIcon }) 
 
   async function saveRole(event) {
     event.preventDefault();
+    const validation = getFieldErrors(roleSchema, draft);
+    if (!validation.data) return setErrors(validation.errors);
+    setErrors({});
     setSaving(true);
     const response = await fetch(`/api/workspace/roles/${role.key}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(draft),
+      body: JSON.stringify(validation.data),
     });
     const result = await response.json();
     setSaving(false);
-    if (!response.ok) return toast.error(result.message);
+    if (!response.ok) {
+      setErrors({ ...(result.errors || {}), form: result.message });
+      return toast.error(result.message);
+    }
     toast.success(result.message);
     router.refresh();
   }
@@ -151,7 +160,8 @@ function RoleEditor({ role, groups, permissions, canManage, canEditOwnerIcon }) 
           </div>
           <label className="mt-5 block">
             <span className="label">Role name</span>
-            <input className="field" disabled={!editable} required minLength="2" maxLength="60" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
+            <input className="field" aria-invalid={Boolean(errors.name)} disabled={!editable} value={draft.name} onChange={(event) => { setDraft({ ...draft, name: event.target.value }); setErrors((current) => ({ ...current, name: undefined, form: undefined })); }} />
+            <FieldError message={errors.name} />
           </label>
           <fieldset className="mt-5" disabled={!iconEditable}>
             <legend className="label">Role icon</legend>
@@ -170,6 +180,7 @@ function RoleEditor({ role, groups, permissions, canManage, canEditOwnerIcon }) 
                 </button>
               ))}
             </div>
+            <FieldError message={errors.icon} />
           </fieldset>
           <label className="mt-5 block">
             <span className="label">Role icon color</span>
@@ -177,6 +188,7 @@ function RoleEditor({ role, groups, permissions, canManage, canEditOwnerIcon }) 
               <input aria-label="Role icon color" className="size-10 cursor-pointer rounded-lg border-0 bg-transparent p-0 disabled:cursor-not-allowed" disabled={!iconEditable} type="color" value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} />
               <span className="font-mono text-sm uppercase text-neutral-600">{draft.color}</span>
             </span>
+            <FieldError message={errors.color} />
           </label>
           {role.key === "owner" && <p className="mt-3 text-xs leading-5 text-amber-700">The Owner name and full access are protected. The workspace owner can still choose any role icon.</p>}
         </section>
@@ -227,6 +239,7 @@ function RoleEditor({ role, groups, permissions, canManage, canEditOwnerIcon }) 
 
         {(editable || iconEditable) && (
           <div className="sticky bottom-4 z-20 mt-5 flex flex-col-reverse gap-2 rounded-2xl border border-neutral-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:justify-end">
+            <FieldError message={errors.form} className="self-center" />
             {!role.isSystem && <button type="button" className="btn btn-danger" onClick={() => setDeleteConfirmOpen(true)}><Trash2 size={16} />Delete role</button>}
             <button className="btn btn-primary" disabled={saving}><Save size={16} />{saving ? "Saving..." : "Save permissions"}</button>
           </div>

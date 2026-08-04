@@ -1,5 +1,4 @@
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { fail, handleApiError, ok } from "@/lib/api-response";
 import { requireApiUser } from "@/lib/server";
 import {
@@ -7,17 +6,10 @@ import {
   hasWorkspacePermission,
 } from "@/lib/workspace";
 import User from "@/models/User";
-import { strongPasswordSchema } from "@/lib/validations";
+import { memberSchema } from "@/lib/validations";
 import { enforcePersistentRateLimit } from "@/lib/security";
 
 export const runtime = "nodejs";
-
-const memberSchema = z.object({
-  name: z.string().trim().min(2).max(80),
-  email: z.string().trim().toLowerCase().email(),
-  password: strongPasswordSchema,
-  role: z.string().trim().min(1).max(64).default("member"),
-});
 
 export async function GET() {
   try {

@@ -69,7 +69,7 @@ export default function AppearanceSettings({ initialTheme, initialMode }) {
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="order-2 p-3 min-[380px]:p-4 sm:p-6 lg:order-1">
             <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-neutral-200 bg-neutral-50 p-1.5" aria-label="Appearance mode">
-              {[["light", "Light", Sun], ["dark", "Dark", Moon]].map(([mode, label, Icon]) => <button key={mode} type="button" aria-pressed={colorMode === mode} onClick={() => selectMode(mode)} className={`flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${colorMode === mode ? "bg-[var(--accent)] text-white shadow-sm" : "text-neutral-500 hover:bg-white hover:text-neutral-800"}`}><Icon size={16} />{label}</button>)}
+              {[["light", "Light", Sun], ["dark", "Dark", Moon]].map(([mode, label, Icon]) => <button key={mode} type="button" aria-pressed={colorMode === mode} onClick={() => selectMode(mode)} className={`flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${colorMode === mode ? "bg-[var(--accent)] text-white shadow-sm" : "text-neutral-500 hover:bg-[var(--accent-soft)] hover:text-[var(--brand-700)]"}`}><Icon size={16} />{label}</button>)}
             </div>
             <h3 className="font-semibold">Theme</h3>
             <p className="mt-1 text-sm text-neutral-500">Showing {colorMode} themes only. The saved mode applies across navigation, cards, forms, popups, and workspace surfaces.</p>

@@ -9,6 +9,8 @@ import { PageIntro } from "@/components/ui";
 import RoleIcon from "@/components/roles/RoleIcon";
 import { ROLE_ICON_OPTIONS } from "@/constants/roles";
 import SettingsModal from "./SettingsModal";
+import FieldError from "@/components/ui/FieldError";
+import { getFieldErrors, roleSchema } from "@/lib/validations";
 
 export default function RolesSettings() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function RolesSettings() {
   const [color, setColor] = useState("#047857");
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const load = useCallback(async () => {
     const response = await fetch("/api/workspace/roles", { cache: "no-store" });
@@ -33,15 +36,21 @@ export default function RolesSettings() {
 
   async function createRole(event) {
     event.preventDefault();
+    const validation = getFieldErrors(roleSchema, { name, icon, color, permissions: [] });
+    if (!validation.data) return setErrors(validation.errors);
+    setErrors({});
     setSaving(true);
     const response = await fetch("/api/workspace/roles", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, icon, color, permissions: [] }),
+      body: JSON.stringify(validation.data),
     });
     const result = await response.json();
     setSaving(false);
-    if (!response.ok) return toast.error(result.message);
+    if (!response.ok) {
+      setErrors({ ...(result.errors || {}), form: result.message });
+      return toast.error(result.message);
+    }
     toast.success("Role created. Configure its permissions.");
     router.push(`/settings/permissions/${result.data.role.key}`);
     router.refresh();
@@ -60,7 +69,7 @@ export default function RolesSettings() {
 
       <SettingsModal
         open={createOpen && data.permissions.canManageRoles}
-        onClose={() => !saving && setCreateOpen(false)}
+        onClose={() => { if (!saving) { setCreateOpen(false); setErrors({}); } }}
         title="Create role"
         description="Name the role, choose a job icon and set the icon color used throughout the workspace."
         labelledBy="create-role-title"
@@ -69,7 +78,8 @@ export default function RolesSettings() {
           <div className="flex-1 space-y-5 overflow-y-auto p-5 sm:p-6">
           <label>
             <span className="label">New role name</span>
-            <input className="field" required minLength="2" maxLength="60" placeholder="e.g. Project Reviewer" value={name} onChange={(event) => setName(event.target.value)} />
+            <input className="field" aria-invalid={Boolean(errors.name)} placeholder="e.g. Project Reviewer" value={name} onChange={(event) => { setName(event.target.value); setErrors((current) => ({ ...current, name: undefined, form: undefined })); }} />
+            <FieldError message={errors.name} />
           </label>
           <fieldset>
             <legend className="label">Role icon</legend>
@@ -88,6 +98,7 @@ export default function RolesSettings() {
                 </button>
               ))}
             </div>
+            <FieldError message={errors.icon} />
           </fieldset>
           <label>
             <span className="label">Role icon color</span>
@@ -96,10 +107,12 @@ export default function RolesSettings() {
               <span className="font-mono text-sm uppercase text-neutral-600">{color}</span>
               <RoleIcon className="ml-auto" role={{ icon, color }} size={22} />
             </span>
+            <FieldError message={errors.color} />
           </label>
           </div>
           <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-neutral-100 bg-neutral-50/70 p-4 sm:flex-row sm:justify-end">
-            <button className="btn btn-secondary" disabled={saving} onClick={() => setCreateOpen(false)} type="button">Cancel</button>
+            <button className="btn btn-secondary" disabled={saving} onClick={() => { setCreateOpen(false); setErrors({}); }} type="button">Cancel</button>
+            <FieldError message={errors.form} className="self-center" />
             <button className="btn btn-primary" disabled={saving}><Plus size={16} />{saving ? "Creating..." : "Create role"}</button>
           </footer>
         </form>
