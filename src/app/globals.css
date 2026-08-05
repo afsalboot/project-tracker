@@ -110,6 +110,8 @@ html[data-workspace-theme="true"][data-color-mode="dark"] [data-sonner-toaster][
 }
 
 * { box-sizing: border-box; min-width: 0; }
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
 html { background: var(--background); }
 body {
   margin: 0;
@@ -181,7 +183,7 @@ html[data-workspace-theme="true"][data-color-mode="dark"] .text-violet-700 { col
 html[data-workspace-theme="true"][data-color-mode="dark"] .bg-sky-50 { background-color: #122631; }
 html[data-workspace-theme="true"][data-color-mode="dark"] .border-sky-200 { border-color: #295469; }
 html[data-workspace-theme="true"][data-color-mode="dark"] .text-sky-700 { color: #83c9e8; }
-.label { display: block; margin-bottom: 6px; color: #3d4943; font-size: 13px; font-weight: 600; }
+.label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 13px; font-weight: 650; }
 .btn {
   display: inline-flex;
   min-height: 40px;

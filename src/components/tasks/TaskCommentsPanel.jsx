@@ -69,8 +69,6 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
   const textareaRef = useRef(null);
   const mentionListId = useId();
-  const canManage = permissions.includes("tasks.edit");
-  const canDelete = permissions.includes("tasks.delete");
   const mentionAliases = useMemo(() => getMentionAliases(mentionMembers), [mentionMembers]);
 
   const load = useCallback(async () => {
@@ -204,7 +202,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
                   <div className="flex flex-wrap items-center gap-x-2"><p className="text-xs font-semibold">{comment.userId?.name || "Former user"}</p><time className="text-[11px] text-neutral-400">{new Date(comment.createdAt).toLocaleString()}</time>{comment.editedAt && <span className="text-[10px] text-neutral-400">edited</span>}</div>
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-5 text-neutral-700"><CommentBody body={comment.body} mentionAliases={mentionAliases} /></p>
                 </div>
-                {!readOnly && (mine || canManage || canDelete) && <div className="flex shrink-0 gap-1">{(mine || canManage) && <button className="grid size-8 place-items-center rounded-lg hover:bg-neutral-100" onClick={() => { setEditing({ _id: comment._id, body: comment.body }); setMentionSearch(null); setSelectedMentions([]); }} aria-label="Edit comment"><Pencil size={13} /></button>}{(mine || canDelete) && <button className="grid size-8 place-items-center rounded-lg text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(comment)} aria-label="Delete comment"><Trash2 size={13} /></button>}</div>}
+                {!readOnly && mine && <div className="flex shrink-0 gap-1"><button className="grid size-8 place-items-center rounded-lg hover:bg-neutral-100" onClick={() => { setEditing({ _id: comment._id, body: comment.body }); setMentionSearch(null); setSelectedMentions([]); }} aria-label="Edit comment"><Pencil size={13} /></button><button className="grid size-8 place-items-center rounded-lg text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(comment)} aria-label="Delete comment"><Trash2 size={13} /></button></div>}
               </div>
             </article>
           );
@@ -230,7 +228,7 @@ export default function TaskCommentsPanel({ taskId, permissions, heading = "Comm
           <FieldError message={commentError} />
         </label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-[11px] leading-4 text-neutral-400">{workspaceType === "personal" ? "Keep task context and progress notes together." : "Use @name, @username, or @email to notify a workspace member."}</p><div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">{editing && <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setMentionSearch(null); setSelectedMentions([]); }}>Cancel</button>}<button className={`btn btn-primary ${editing ? "" : "col-span-2 sm:col-span-1"}`} disabled={saving || !(editing ? editing.body : draft).trim()}>{saving ? "Saving…" : editing ? "Save comment" : "Comment"}</button></div></div>
-      </form> : <p className="mt-4 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">Read-only task. Only the task creator can add or change comments.</p>}
+      </form> : <p className="mt-4 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-500">Your role can read this discussion but does not have permission to comment.</p>}
       <ConfirmDialog open={Boolean(deleteTarget)} title="Delete this comment?" description="This comment will be permanently removed from the task discussion." confirmLabel="Delete comment" onClose={() => setDeleteTarget(null)} onConfirm={remove} />
     </>
   );

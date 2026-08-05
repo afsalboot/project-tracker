@@ -7,6 +7,7 @@ import TaskComment from "@/models/TaskComment";
 import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
 import { requireProjectRecordAccess } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
+import { projectNotificationRecipients } from "@/lib/activity-notifications";
 
 export const runtime = "nodejs";
 
@@ -71,11 +72,13 @@ export async function POST(request, { params }) {
         parentTaskId: parent._id,
       }),
     });
+    const recipientUserIds = await projectNotificationRecipients(parent.projectId, auth.userId);
     await Activity.create({
       userId: auth.userId,
       workspaceId: auth.workspaceId,
       projectId: parent.projectId,
       taskId: parent._id,
+      recipientUserIds,
       action: "Subtask created",
       newValue: subtask.title,
     });

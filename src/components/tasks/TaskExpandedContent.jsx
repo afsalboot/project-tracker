@@ -145,7 +145,7 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
                   </summary>
                   <div className="border-t border-neutral-100 bg-neutral-50/60 p-4 sm:px-5">
                     {item.description && <p className="mb-4 whitespace-pre-wrap text-sm leading-6 text-neutral-600">{item.description}</p>}
-                    <TaskCommentsPanel taskId={item._id} permissions={permissions} readOnly={!item.isCreator} workspaceType={workspaceType} onChanged={() => { load(); onChanged?.(); }} />
+                    <TaskCommentsPanel taskId={item._id} permissions={permissions} readOnly={!permissions.includes("tasks.comment")} workspaceType={workspaceType} onChanged={() => { load(); onChanged?.(); }} />
                   </div>
                 </details>
               ))}
@@ -154,7 +154,7 @@ export default function TaskExpandedContent({ task, permissions = [], onChanged 
         </section>
 
         <section className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <TaskCommentsPanel taskId={taskId} permissions={permissions} heading="Main task comments" readOnly={!task.isCreator} workspaceType={workspaceType} onChanged={onChanged} />
+          <TaskCommentsPanel taskId={taskId} permissions={permissions} heading="Main task comments" readOnly={!permissions.includes("tasks.comment")} workspaceType={workspaceType} onChanged={onChanged} />
         </section>
       </div>
 

@@ -6,6 +6,7 @@ import Activity from "@/models/Activity";
 import Task from "@/models/Task";
 import { requireProjectRecordAccess } from "@/lib/project-access";
 import { activeChoice, completedTaskStatus } from "@/lib/customization";
+import { projectNotificationRecipients } from "@/lib/activity-notifications";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,7 @@ export async function PATCH(request, { params }) {
     task.completedDate = status === completedTaskStatus(auth.workspace) ? task.completedDate || new Date() : null;
     await task.save();
     if (previous !== status) {
+      const recipientUserIds = await projectNotificationRecipients(task.projectId, auth.userId);
       await Promise.all([
         recalculateProgress(task.projectId, auth.workspaceId),
         Activity.create({
@@ -37,6 +39,7 @@ export async function PATCH(request, { params }) {
           workspaceId: auth.workspaceId,
           projectId: task.projectId,
           taskId,
+          recipientUserIds,
           action: "Task status changed",
           previousValue: previous,
           newValue: status,

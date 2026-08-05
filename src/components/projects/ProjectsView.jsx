@@ -130,9 +130,9 @@ export default function ProjectsView({ permissions = [] }) {
         activeCount={(filters.search ? 1 : 0) + ["userId", "priority", ...visibleFilterKeys].reduce((sum, key) => sum + filters[key].length, 0)}
         onClear={() => setFilters({ ...filters, search: "", userId: [], stage: [], priority: [], projectPlatform: [], zohoProduct: [], projectType: [], environment: [] })}
       >
-        <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 via-white to-emerald-50/30 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.85)]">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[minmax(220px,1.6fr)_repeat(8,minmax(130px,1fr))]">
-            <SearchField ariaLabel="Search projects" inputClassName="!min-h-10 !rounded-xl !border-white/80 !bg-white/90 !py-1.5 shadow-sm" placeholder="Search projects or clients…" value={filters.search} onChange={(search) => setFilters({ ...filters, search })} />
+        <div className="rounded-2xl border border-neutral-200 bg-[var(--surface)] p-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <SearchField ariaLabel="Search projects" placeholder="Search projects or clients…" value={filters.search} onChange={(search) => setFilters({ ...filters, search })} />
             {canFilterUsers && <Filter label="All users" options={recordUsers.map((user) => [user._id, user.username ? `${user.name} (@${user.username})` : user.name])} value={filters.userId} onChange={(userId) => setFilters({ ...filters, userId })} />}
             {visibility.stage && <Filter label="All stages" values={customization.projectStages.filter((item) => item.enabled).map((item) => item.label)} value={filters.stage} onChange={(stage) => setFilters({ ...filters, stage })} />}
             <Filter label="All priorities" values={PRIORITIES} value={filters.priority} onChange={(priority) => setFilters({ ...filters, priority })} />
@@ -140,7 +140,7 @@ export default function ProjectsView({ permissions = [] }) {
             {visibility.projectPlatform && visibility.zohoProduct && <Filter label="All Zoho platforms" values={customization.zohoPlatforms.filter((item) => item.enabled).map((item) => item.label)} value={filters.zohoProduct} onChange={(zohoProduct) => setFilters({ ...filters, zohoProduct })} />}
             {visibility.projectType && <Filter label="All types" values={availableProjectTypes} value={filters.projectType} onChange={(projectType) => setFilters({ ...filters, projectType })} />}
             {visibility.environment && <Filter label="All environments" values={customization.environments.filter((item) => item.enabled).map((item) => item.label)} value={filters.environment} onChange={(environment) => setFilters({ ...filters, environment })} />}
-            <Dropdown ariaLabel="Sort projects" className="text-xs [&_.field]:!min-h-10 [&_.field]:!rounded-xl [&_.field]:!border-white/80 [&_.field]:!bg-white/90 [&_.field]:!py-1.5 [&_.field]:shadow-sm" value={filters.sort} onChange={(sort) => setFilters({ ...filters, sort })} options={[["updated", "Recently updated"], ["due", "Due date"], ["name", "Project name"], ["created", "Newest"]]} />
+            <Dropdown ariaLabel="Sort projects" value={filters.sort} onChange={(sort) => setFilters({ ...filters, sort })} options={[["updated", "Recently updated"], ["due", "Due date"], ["name", "Project name"], ["created", "Newest"]]} />
           </div>
           <ProjectFilterChips filters={filters} setFilters={setFilters} recordUsers={recordUsers} />
         </div>
@@ -257,7 +257,7 @@ function ProjectEmptyState({ view, canCreate, onCreate }) {
   return <EmptyState title={content[0]} description={content[1]} action={canCreate && view !== "archived" && view !== "completed" && <button onClick={onCreate} className="btn btn-primary">Create project</button>} />;
 }
 function Filter({ label, values = [], options, value, onChange }) {
-  return <Dropdown multiple ariaLabel={label} className="text-xs [&_.field]:!min-h-10 [&_.field]:!rounded-xl [&_.field]:!border-white/80 [&_.field]:!bg-white/90 [&_.field]:!py-1.5 [&_.field]:shadow-sm" value={value} onChange={onChange} placeholder={label} options={options || values.map((item) => [item, item])} />;
+  return <Dropdown multiple ariaLabel={label} value={value} onChange={onChange} placeholder={label} options={options || values.map((item) => [item, item])} />;
 }
 
 function filterParams(filters) {

@@ -12,6 +12,7 @@ import { validateAssignees } from "@/lib/assignees";
 import { projectAccessFilter } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
 import { activeChoice, blockedTaskStatus, completedProjectStage, completedTaskStatus, hasEnabledChoices, testingTaskStatus, workspaceCustomization } from "@/lib/customization";
+import { projectNotificationRecipients } from "@/lib/activity-notifications";
 
 export const runtime = "nodejs";
 const deleteConfirmationSchema = z.object({
@@ -142,6 +143,9 @@ export async function PUT(request, { params }) {
     const previousDueDate = current.dueDate?.toISOString() || null;
     Object.assign(current, cleanDates(fields), { slug });
     await current.save();
+    const updateRecipients = await projectNotificationRecipients(projectId, auth.userId, {
+      excludeUserIds: addedAssignees,
+    });
     if (previousStage !== current.stage) {
       await Activity.create({
         userId: auth.userId,
@@ -168,10 +172,17 @@ export async function PUT(request, { params }) {
         userId: auth.userId,
         workspaceId: auth.workspaceId,
         projectId,
-        recipientUserIds: addedAssignees,
+        recipientUserIds: addedAssignees.filter((id) => String(id) !== String(auth.userId)),
         action: "Project assignment added",
       });
     }
+    await Activity.create({
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      projectId,
+      recipientUserIds: updateRecipients,
+      action: "Project updated",
+    });
     return ok({ project: current }, "Project updated successfully.");
   } catch (error) {
     return handleApiError(error);

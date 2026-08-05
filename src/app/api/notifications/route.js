@@ -58,7 +58,7 @@ export async function DELETE(request) {
       : {
         $set: { notificationClearedAt: new Date(), dismissedNotificationIds: [] },
       };
-    if (notificationId && (notificationId.length > 200 || !/^(mention|assignment)-[a-z0-9-]+$/i.test(notificationId))) {
+    if (notificationId && (notificationId.length > 200 || !/^(mention|assignment|update)-[a-z0-9-]+$/i.test(notificationId))) {
       return fail("Invalid notification.", 422);
     }
     const user = await User.findOneAndUpdate(

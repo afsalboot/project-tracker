@@ -37,6 +37,7 @@ export const WORKSPACE_PERMISSIONS = [
   { key: "tasks.view", group: "records", section: "Task", label: "View", description: "View My Tasks, project tasks, and the task board." },
   { key: "tasks.view_others", group: "records", section: "Task", label: "View Others' Tasks", description: "View tasks created by other people inside accessible projects." },
   { key: "tasks.create", group: "records", section: "Task", label: "Create", description: "Add tasks to projects." },
+  { key: "tasks.comment", group: "records", section: "Task", label: "Comment", description: "Add, edit, and delete the user's own comments on visible tasks." },
   { key: "tasks.edit", group: "records", section: "Task", label: "Edit", description: "Edit task details and update task status." },
   { key: "tasks.delete", group: "records", section: "Task", label: "Delete", description: "Permanently delete tasks." },
 
@@ -64,6 +65,7 @@ const MEMBER_PERMISSIONS = [
   "completed.view",
   "projects.create",
   "tasks.create",
+  "tasks.comment",
   "projects.edit",
   "projects.archive",
   "projects.delete",
@@ -89,7 +91,7 @@ export const LEGACY_PERMISSION_EXPANSIONS = {
     "projects.archive",
     "projects.delete",
   ],
-  "tasks.manage": ["tasks.view", "tasks.view_others", "tasks.create", "tasks.edit", "tasks.delete"],
+  "tasks.manage": ["tasks.view", "tasks.view_others", "tasks.create", "tasks.comment", "tasks.edit", "tasks.delete"],
 };
 
 export function expandLegacyRolePermissions(roles = []) {

@@ -10,6 +10,7 @@ import { z } from "zod";
 import { projectAccessFilter, requireProjectRecordAccess } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
 import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
+import { projectNotificationRecipients } from "@/lib/activity-notifications";
 
 export const runtime = "nodejs";
 const deleteConfirmationSchema = z.object({
@@ -94,6 +95,7 @@ export async function PUT(request, { params }) {
       );
     }
     await Promise.all(recalculations);
+    const recipientUserIds = await projectNotificationRecipients(nextProject, auth.userId);
     if (previousStatus !== input.status) {
       await Activity.create({
         userId: auth.userId,
@@ -117,6 +119,14 @@ export async function PUT(request, { params }) {
         newValue: nextDueDate,
       });
     }
+    await Activity.create({
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      projectId: nextProject,
+      taskId,
+      recipientUserIds,
+      action: "Task updated",
+    });
     return ok({ task }, "Task updated successfully.");
   } catch (error) {
     return handleApiError(error);
@@ -148,6 +158,7 @@ export async function DELETE(request, { params }) {
       workspaceId: auth.workspaceId,
     }).select("_id").lean();
     const taskIds = [task._id, ...subtasks.map((item) => item._id)];
+    const recipientUserIds = await projectNotificationRecipients(task.projectId, auth.userId);
     const deleted = await Task.deleteMany({
       _id: { $in: taskIds },
       workspaceId: auth.workspaceId,
@@ -164,6 +175,7 @@ export async function DELETE(request, { params }) {
         workspaceId: auth.workspaceId,
         projectId: task.projectId,
         taskId,
+        recipientUserIds,
         action: "Task deleted",
         previousValue: task.title,
       }),

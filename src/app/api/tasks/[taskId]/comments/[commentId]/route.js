@@ -1,10 +1,11 @@
 import { fail, handleApiError, ok } from "@/lib/api-response";
-import { requireApiUser, requireTaskCreator, validId } from "@/lib/server";
+import { requireApiUser, requireWorkspacePermission, validId } from "@/lib/server";
 import { taskCommentSchema } from "@/lib/validations";
 import TaskComment from "@/models/TaskComment";
 import Task from "@/models/Task";
 import { requireProjectRecordAccess } from "@/lib/project-access";
 import { resolveMentionedUserIds } from "@/lib/mentions";
+import { taskAccessFilter } from "@/lib/task-access";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,8 @@ export async function PUT(request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    const denied = requireWorkspacePermission(auth, "tasks.comment");
+    if (denied) return denied;
     const { taskId, commentId } = await params;
     if (!validId(taskId) || !validId(commentId)) return fail("Comment not found.", 404);
     const comment = await TaskComment.findOne({
@@ -20,12 +23,10 @@ export async function PUT(request, { params }) {
       workspaceId: auth.workspaceId,
     });
     if (!comment) return fail("Comment not found.", 404);
-    const task = await Task.findOne({ _id: taskId, workspaceId: auth.workspaceId });
+    const task = await Task.findOne({ _id: taskId, workspaceId: auth.workspaceId, ...taskAccessFilter(auth) });
     if (!task) return fail("Task not found.", 404);
     const accessDenied = await requireProjectRecordAccess(auth, task.projectId);
     if (accessDenied) return accessDenied;
-    const creatorDenied = requireTaskCreator(auth, task);
-    if (creatorDenied) return creatorDenied;
     const isAuthor = String(comment.userId) === String(auth.userId);
     if (!isAuthor) {
       return fail("You can only edit your own comments.", 403);
@@ -46,6 +47,8 @@ export async function DELETE(_request, { params }) {
   try {
     const auth = await requireApiUser();
     if (auth.response) return auth.response;
+    const denied = requireWorkspacePermission(auth, "tasks.comment");
+    if (denied) return denied;
     const { taskId, commentId } = await params;
     if (!validId(taskId) || !validId(commentId)) return fail("Comment not found.", 404);
     const comment = await TaskComment.findOne({
@@ -54,12 +57,10 @@ export async function DELETE(_request, { params }) {
       workspaceId: auth.workspaceId,
     });
     if (!comment) return fail("Comment not found.", 404);
-    const task = await Task.findOne({ _id: taskId, workspaceId: auth.workspaceId });
+    const task = await Task.findOne({ _id: taskId, workspaceId: auth.workspaceId, ...taskAccessFilter(auth) });
     if (!task) return fail("Task not found.", 404);
     const accessDenied = await requireProjectRecordAccess(auth, task.projectId);
     if (accessDenied) return accessDenied;
-    const creatorDenied = requireTaskCreator(auth, task);
-    if (creatorDenied) return creatorDenied;
     const isAuthor = String(comment.userId) === String(auth.userId);
     if (!isAuthor) {
       return fail("You can only delete your own comments.", 403);

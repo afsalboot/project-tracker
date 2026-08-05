@@ -218,6 +218,7 @@ export async function GET(request) {
         workspaceId,
         projectId: { $in: accessibleProjectIds },
         recipientUserIds: auth.userId,
+        userId: { $ne: auth.userId },
         action: "Project assignment added",
       })
         .populate("userId", "name")
@@ -239,11 +240,6 @@ export async function GET(request) {
         .lean(),
     ]);
 
-    const assignmentProjectIds = new Set(assignmentActivities.map((item) => String(item.projectId?._id || item.projectId)));
-    const inferredAssignments = forYouProjects.filter((project) =>
-      project.assignedUserIds?.some((id) => String(id) === String(auth.userId)) &&
-      !assignmentProjectIds.has(String(project._id)),
-    );
     const forYouUpdates = [
       ...mentions.map((comment) => ({
         _id: `mention-${comment._id}`,
@@ -265,16 +261,6 @@ export async function GET(request) {
         projectName: item.projectId?.name || "Project",
         href: `/projects/${item.projectId?._id || item.projectId}`,
         createdAt: item.createdAt,
-      })),
-      ...inferredAssignments.map((project) => ({
-        _id: `assignment-current-${project._id}`,
-        type: "assignment",
-        actorName: project.userId?.name || "Project owner",
-        title: `${project.userId?.name || "Project owner"} assigned you`,
-        message: project.name,
-        projectName: project.name,
-        href: `/projects/${project._id}`,
-        createdAt: project.createdAt,
       })),
       ...relevantUpdates.map((item) => ({
         _id: `update-${item._id}`,

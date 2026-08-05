@@ -14,7 +14,7 @@ export async function getUserNotifications(auth, { limit = 60, clearedAt = null,
     .lean();
   const projectIds = projects.map((project) => project._id);
 
-  const [mentions, assignmentActivities] = await Promise.all([
+  const [mentions, activities] = await Promise.all([
     TaskComment.find({
       workspaceId: auth.workspaceId,
       projectId: { $in: projectIds },
@@ -30,7 +30,7 @@ export async function getUserNotifications(auth, { limit = 60, clearedAt = null,
       workspaceId: auth.workspaceId,
       projectId: { $in: projectIds },
       recipientUserIds: auth.userId,
-      action: "Project assignment added",
+      userId: { $ne: auth.userId },
     })
       .populate("userId", "name username")
       .populate("projectId", "name")
@@ -38,14 +38,6 @@ export async function getUserNotifications(auth, { limit = 60, clearedAt = null,
       .limit(queryLimit)
       .lean(),
   ]);
-
-  const assignmentProjectIds = new Set(
-    assignmentActivities.map((item) => String(item.projectId?._id || item.projectId)),
-  );
-  const inferredAssignments = projects.filter((project) =>
-    project.assignedUserIds?.some((id) => String(id) === String(auth.userId)) &&
-    !assignmentProjectIds.has(String(project._id)),
-  );
 
   const dismissed = new Set(dismissedIds);
   return [
@@ -59,23 +51,16 @@ export async function getUserNotifications(auth, { limit = 60, clearedAt = null,
       href: `/projects/${comment.projectId?._id || comment.projectId}`,
       createdAt: comment.createdAt,
     })),
-    ...assignmentActivities.map((item) => ({
-      _id: `assignment-${item._id}`,
-      type: "assignment",
-      title: `${item.userId?.name || "A teammate"} assigned you`,
-      message: item.projectId?.name || "Project",
+    ...activities.map((item) => ({
+      _id: `${item.action === "Project assignment added" ? "assignment" : "update"}-${item._id}`,
+      type: item.action === "Project assignment added" ? "assignment" : "update",
+      title: item.action === "Project assignment added"
+        ? `${item.userId?.name || "A teammate"} assigned you`
+        : `${item.userId?.name || "A teammate"} updated ${item.taskId ? "a task" : "the project"}`,
+      message: item.action,
       projectName: item.projectId?.name || "Project",
       href: `/projects/${item.projectId?._id || item.projectId}`,
       createdAt: item.createdAt,
-    })),
-    ...inferredAssignments.map((project) => ({
-      _id: `assignment-current-${project._id}`,
-      type: "assignment",
-      title: `${project.userId?.name || "Project owner"} assigned you`,
-      message: project.name,
-      projectName: project.name,
-      href: `/projects/${project._id}`,
-      createdAt: project.createdAt,
     })),
   ]
     .filter((item) => (!clearedAt || new Date(item.createdAt) > new Date(clearedAt)) && !dismissed.has(item._id))

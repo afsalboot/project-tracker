@@ -84,7 +84,7 @@ export async function POST(request) {
         userId: auth.userId,
         workspaceId: auth.workspaceId,
         projectId: project._id,
-        recipientUserIds: assignment.ids,
+        recipientUserIds: assignment.ids.filter((id) => String(id) !== String(auth.userId)),
         action: "Project assignment added",
       });
     }

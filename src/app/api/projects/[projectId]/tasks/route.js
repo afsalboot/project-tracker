@@ -9,6 +9,7 @@ import TaskComment from "@/models/TaskComment";
 import { projectAccessFilter } from "@/lib/project-access";
 import { taskAccessFilter } from "@/lib/task-access";
 import { activeChoice, completedTaskStatus, hasEnabledChoices } from "@/lib/customization";
+import { projectNotificationRecipients } from "@/lib/activity-notifications";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,7 @@ export async function POST(request, { params }) {
       completedDate: input.status === completedStatus ? new Date() : null,
       sortOrder: await Task.countDocuments({ projectId, workspaceId: auth.workspaceId, parentTaskId: null }),
     });
+    const recipientUserIds = await projectNotificationRecipients(projectId, auth.userId);
     await Promise.all([
       recalculateProgress(projectId, auth.workspaceId),
       Activity.create({
@@ -41,6 +43,7 @@ export async function POST(request, { params }) {
         workspaceId: auth.workspaceId,
         projectId,
         taskId: task._id,
+        recipientUserIds,
         action: "Task created",
         newValue: task.title,
       }),

@@ -3,6 +3,7 @@ import { requireApiUser, requireWorkspacePermission, validId } from "@/lib/serve
 import Activity from "@/models/Activity";
 import Project from "@/models/Project";
 import { projectAccessFilter } from "@/lib/project-access";
+import { projectNotificationRecipients } from "@/lib/activity-notifications";
 
 export const runtime = "nodejs";
 
@@ -18,10 +19,12 @@ export async function PATCH(_request, { params }) {
     if (!project) return fail("Project not found.", 404);
     project.isArchived = !project.isArchived;
     await project.save();
+    const recipientUserIds = await projectNotificationRecipients(projectId, auth.userId);
     await Activity.create({
       userId: auth.userId,
       workspaceId: auth.workspaceId,
       projectId,
+      recipientUserIds,
       action: project.isArchived ? "Project archived" : "Project restored",
     });
     return ok({ project }, project.isArchived ? "Project archived." : "Project restored.");

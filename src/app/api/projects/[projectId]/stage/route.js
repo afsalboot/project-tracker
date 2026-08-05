@@ -5,6 +5,7 @@ import Activity from "@/models/Activity";
 import Project from "@/models/Project";
 import { projectAccessFilter } from "@/lib/project-access";
 import { activeChoice, completedProjectStage } from "@/lib/customization";
+import { projectNotificationRecipients } from "@/lib/activity-notifications";
 
 export const runtime = "nodejs";
 
@@ -24,10 +25,12 @@ export async function PATCH(request, { params }) {
     project.stage = stage;
     if (stage !== completedProjectStage(auth.workspace)) project.completedDate = null;
     await project.save();
+    const recipientUserIds = await projectNotificationRecipients(projectId, auth.userId);
     await Activity.create({
       userId: auth.userId,
       workspaceId: auth.workspaceId,
       projectId,
+      recipientUserIds,
       action: "Project stage changed",
       previousValue: previous,
       newValue: stage,
