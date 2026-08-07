@@ -1,6 +1,6 @@
 # Project 1 Workspace
 
-A secure, single-user tracker for general projects and Zoho customization work.
+A secure, single-user tracker for project work.
 
 ## Local setup
 
